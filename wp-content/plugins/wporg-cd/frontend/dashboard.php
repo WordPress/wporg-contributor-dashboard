@@ -361,7 +361,7 @@ section { margin-bottom: 40px; }
                     <div class="grid-4">
                 <div class="card stat">
                     <div class="stat-val blue"><?php echo number_format($total_events); ?></div>
-                    <div class="stat-lbl">Total Events</div>
+                    <div class="stat-lbl">Total Contributions</div>
                     </div>
                 <div class="card stat">
                     <div class="stat-val green"><?php echo number_format($total_contributors); ?></div>
@@ -369,7 +369,7 @@ section { margin-bottom: 40px; }
                         </div>
                 <div class="card stat">
                     <div class="stat-val purple"><?php echo number_format($avg_events ?? 0, 1); ?></div>
-                    <div class="stat-lbl">Avg Events/Contributor</div>
+                    <div class="stat-lbl">Avg Contributions/Contributor</div>
                         </div>
                 <div class="card stat">
                     <div class="stat-val yellow"><?php echo number_format($single_event); ?></div>
@@ -445,7 +445,7 @@ section { margin-bottom: 40px; }
                 <?php if ($avg_time_to_first !== null): ?>
                 <div class="insight">
                     <span>Average <strong><?php echo esc_html( round( $avg_time_to_first ) ); ?> days</strong> from account creation to first contribution.</span>
-                    <span class="info-icon">i<span class="info-tip">Days between WordPress.org account registration and first recorded contribution event.</span></span>
+                    <span class="info-icon">i<span class="info-tip">Days between WordPress.org account registration and first recorded contribution.</span></span>
                 </div>
                 <?php endif; ?>
                 <div class="insight">
@@ -455,7 +455,7 @@ section { margin-bottom: 40px; }
                 <?php if ($ten_plus_events > 0): ?>
                 <div class="insight">
                     <span><strong><?php echo esc_html( number_format( $ten_plus_events ) ); ?></strong> contributors with 10+ contributions (<?php echo esc_html( round( ( $ten_plus_events / $total_contributors ) * 100 ) ); ?>%).</span>
-                    <span class="info-icon">i<span class="info-tip">Contributors who have made more than 10 contribution events.</span></span>
+                    <span class="info-icon">i<span class="info-tip">Contributors who have made more than 10 contributions.</span></span>
                 </div>
                 <?php endif; ?>
                 <?php if ($new_contributors_30d > 0): ?>
@@ -493,7 +493,7 @@ section { margin-bottom: 40px; }
                     <span class="item-name"><?php echo esc_html( $title ); ?></span>
                     <span class="item-count"><?php echo esc_html( number_format( $first_cnt ) ); ?></span>
                     <div class="bar-wrap"><div class="bar" style="width: <?php echo esc_attr( $p ); ?>%"></div></div>
-                    <span class="item-total" title="Total events of this type"><?php echo esc_html( number_format( $total_cnt ) ); ?> total</span>
+                    <span class="item-total" title="Total contributions of this type"><?php echo esc_html( number_format( $total_cnt ) ); ?> total</span>
                                 </div>
                 <?php endforeach; endif; ?>
                     </div>
