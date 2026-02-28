@@ -1,0 +1,6 @@
+{
+	"core": null,
+	"plugins": [
+		"./wp-content/plugins/wporg-cd"
+	]
+}
