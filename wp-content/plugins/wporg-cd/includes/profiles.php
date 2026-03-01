@@ -130,14 +130,30 @@ function wporgcd_compute_status($last_activity) {
 }
 
 // ============================================================================
-// ASYNC PROFILE COMPUTATION (WP-Cron based)
+// ASYNC PROFILE COMPUTATION
 // ============================================================================
 
-// Batch size for processing profiles per cron run
+// Batch size for processing profiles
 define('WPORGCD_PROFILE_BATCH_SIZE', 500);
 
-// Register WP-Cron hook
-add_action('wporgcd_cron_process_profiles', 'wporgcd_process_profile_batch');
+// Hook into queue processor
+add_action( 'wporgcd_process_queue', 'wporgcd_maybe_process_profiles', 20 );
+add_filter( 'wporgcd_has_pending_work', 'wporgcd_profiles_has_pending_work' );
+
+function wporgcd_maybe_process_profiles() {
+    $state = get_option( 'wporgcd_profile_generation_state' );
+    if ( $state && $state['status'] === 'processing' ) {
+        wporgcd_process_profile_batch();
+    }
+}
+
+function wporgcd_profiles_has_pending_work( $has_work ) {
+    if ( $has_work ) {
+        return true;
+    }
+    $state = get_option( 'wporgcd_profile_generation_state' );
+    return $state && $state['status'] === 'processing';
+}
 
 /**
  * Process a batch of profiles
@@ -178,7 +194,6 @@ function wporgcd_process_profile_batch() {
         $state['status'] = 'completed';
         $state['completed_at'] = current_time('mysql');
         update_option('wporgcd_profile_generation_state', $state);
-        wp_clear_scheduled_hook('wporgcd_cron_process_profiles');
         
         // Fire action to regenerate dashboard cache
         do_action('wporgcd_profiles_generated');
@@ -200,11 +215,6 @@ function wporgcd_process_profile_batch() {
     // Update state
     $state['processed'] += $batch_processed;
     update_option('wporgcd_profile_generation_state', $state);
-    
-    // Schedule next batch in 1 second
-    if (!wp_next_scheduled('wporgcd_cron_process_profiles')) {
-        wp_schedule_single_event(time() + 1, 'wporgcd_cron_process_profiles');
-    }
 }
 
 /**
@@ -645,10 +655,10 @@ function wporgcd_delete_all_profiles() {
 // ============================================================================
 
 /**
- * Start building all profiles (async via WP-Cron)
+ * Start building all profiles
  * 
  * This is the main entry point to trigger profile generation.
- * Call this manually when you want to build/rebuild all profiles.
+ * The heartbeat queue will pick this up and start processing.
  * 
  * @return array Status info
  */
@@ -690,7 +700,7 @@ function wporgcd_start_profile_generation() {
     // Snapshot current ladders to ensure consistency across all batches
     $ladders_snapshot = wporgcd_get_ladders();
     
-    // Store generation state
+    // Store generation state - the heartbeat queue will pick this up
     $state = array(
         'status' => 'processing',
         'started_at' => current_time('mysql'),
@@ -700,10 +710,6 @@ function wporgcd_start_profile_generation() {
         'ladders_snapshot' => $ladders_snapshot,
     );
     update_option('wporgcd_profile_generation_state', $state);
-    
-    // Schedule the first batch
-    wp_clear_scheduled_hook('wporgcd_cron_process_profiles'); // Clear any existing
-    wp_schedule_single_event(time() + 1, 'wporgcd_cron_process_profiles');
     
     return array(
         'success' => true,
@@ -721,7 +727,6 @@ function wporgcd_start_profile_generation() {
  */
 function wporgcd_get_profile_generation_status() {
     $state = get_option('wporgcd_profile_generation_state');
-    $next_scheduled = wp_next_scheduled('wporgcd_cron_process_profiles');
     
     $is_running = $state && $state['status'] === 'processing';
     
@@ -743,7 +748,6 @@ function wporgcd_get_profile_generation_status() {
         'progress' => $progress,
         'started_at' => $state['started_at'] ?? null,
         'completed_at' => $state['completed_at'] ?? null,
-        'next_batch_scheduled' => $next_scheduled ? true : false,
     );
 }
 
@@ -751,9 +755,6 @@ function wporgcd_get_profile_generation_status() {
  * Stop any ongoing profile generation
  */
 function wporgcd_stop_profile_generation() {
-    // Clear the cron
-    wp_clear_scheduled_hook('wporgcd_cron_process_profiles');
-    
     // Update state
     $state = get_option('wporgcd_profile_generation_state');
     if ($state) {
@@ -769,6 +770,5 @@ function wporgcd_stop_profile_generation() {
  * Reset profile generation state (for cleanup)
  */
 function wporgcd_reset_profile_generation() {
-    wp_clear_scheduled_hook('wporgcd_cron_process_profiles');
     delete_option('wporgcd_profile_generation_state');
 }

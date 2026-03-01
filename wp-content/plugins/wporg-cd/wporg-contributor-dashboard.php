@@ -15,6 +15,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/helpers.php';
 require_once plugin_dir_path(__FILE__) . 'includes/events.php';
 require_once plugin_dir_path(__FILE__) . 'includes/import.php';
 require_once plugin_dir_path(__FILE__) . 'includes/profiles.php';
+require_once plugin_dir_path(__FILE__) . 'includes/queue.php';
 require_once plugin_dir_path(__FILE__) . 'admin/settings.php';
 require_once plugin_dir_path(__FILE__) . 'admin/import.php';
 require_once plugin_dir_path(__FILE__) . 'admin/profiles.php';

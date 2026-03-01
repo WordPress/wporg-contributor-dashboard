@@ -1,9 +1,10 @@
 <?php
 /**
- * CSV Import Tool using WP-Cron
+ * CSV Import Tool
  * 
  * Admin UI for importing contributor events from CSV files.
  * Uses core import functions from includes/import.php
+ * Processing is handled by the heartbeat queue system (includes/queue.php)
  * 
  * Expected CSV format: ID,user_id,user_registered,event_type,date_recorded
  */
@@ -27,13 +28,38 @@ function wporgcd_add_import_menu() {
     );
 }
 
-// Register WP-Cron hook
-add_action('wporgcd_cron_process_import', 'wporgcd_process_csv_import_batch');
+// Hook into queue processor
+add_action( 'wporgcd_process_queue', 'wporgcd_maybe_process_import', 10 );
+add_filter( 'wporgcd_has_pending_work', 'wporgcd_import_has_pending_work' );
+
+function wporgcd_maybe_process_import() {
+    $import_id = wporgcd_get_current_import();
+    if ( $import_id ) {
+        $state = wporgcd_get_import_state( $import_id );
+        if ( $state && $state['status'] === 'processing' ) {
+            wporgcd_process_import_batch();
+        }
+    }
+}
+
+function wporgcd_import_has_pending_work( $has_work ) {
+    if ( $has_work ) {
+        return true;
+    }
+    $import_id = wporgcd_get_current_import();
+    if ( $import_id ) {
+        $state = wporgcd_get_import_state( $import_id );
+        if ( $state && $state['status'] === 'processing' ) {
+            return true;
+        }
+    }
+    return false;
+}
 
 /**
- * Process a batch of CSV rows via WP-Cron
+ * Process a batch of CSV rows
  */
-function wporgcd_process_csv_import_batch() {
+function wporgcd_process_import_batch() {
     $import_id = wporgcd_get_current_import();
     if (!$import_id) return;
     
@@ -106,12 +132,6 @@ function wporgcd_process_csv_import_batch() {
         wporgcd_set_reference_date_from_events();
         
         wporgcd_set_current_import(null);
-        wp_clear_scheduled_hook('wporgcd_cron_process_import');
-    } else {
-        // Schedule next batch in 1 second
-        if (!wp_next_scheduled('wporgcd_cron_process_import')) {
-            wp_schedule_single_event(time() + 1, 'wporgcd_cron_process_import');
-        }
     }
     
     wporgcd_update_import_state($import_id, $state);
@@ -304,13 +324,11 @@ function wporgcd_start_csv_import($file) {
     }
     
     // Create import state using core function
+    // The heartbeat queue will pick this up and start processing
     wporgcd_create_import_state($import_id, $total_lines, array(
         'file_path' => $file_path,
         'has_header' => $is_header,
     ));
-    
-    // Schedule first batch
-    wp_schedule_single_event(time() + 1, 'wporgcd_cron_process_import');
     
     return $total_lines;
 }
@@ -323,9 +341,6 @@ function wporgcd_cancel_csv_import() {
     if (!$import_id) return;
     
     $state = wporgcd_get_import_state($import_id);
-    
-    // Clear cron
-    wp_clear_scheduled_hook('wporgcd_cron_process_import');
     
     // Update state
     if ( $state ) {
@@ -345,8 +360,6 @@ function wporgcd_cancel_csv_import() {
  */
 function wporgcd_cleanup_csv_imports() {
     global $wpdb;
-    
-    wp_clear_scheduled_hook( 'wporgcd_cron_process_import' );
     
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time cleanup query
     $import_states = $wpdb->get_results(
