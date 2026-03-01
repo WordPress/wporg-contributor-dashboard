@@ -3,7 +3,7 @@
  * Background Queue Processor
  * 
  * Replaces WP-Cron with a heartbeat-based queue system.
- * Processes pending work every 2 seconds while any user has a page open.
+ * Processes pending work every second while any user has a page open.
  * 
  * Other modules hook in via:
  *   - wporgcd_process_queue action (to process their work)
@@ -38,7 +38,7 @@ function wporgcd_ajax_heartbeat() {
 function wporgcd_maybe_process_queue() {
 	$last_run = get_transient( 'wporgcd_queue_last_run' );
 	
-	if ( $last_run && ( microtime( true ) - $last_run ) < 2 ) {
+	if ( $last_run && ( microtime( true ) - $last_run ) < 1 ) {
 		return;
 	}
 	
@@ -75,7 +75,7 @@ function wporgcd_output_heartbeat_script() {
 			})
 			.then(function(r){ return r.json(); })
 			.then(function(d){ if(!d.has_work) clearInterval(id); });
-		}, 2000);
+		}, 1000);
 	})();
 	</script>
 	<?php
