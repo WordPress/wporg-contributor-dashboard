@@ -60,7 +60,7 @@ function wporgcd_render_frontend_dashboard() {
     
     $is_admin = current_user_can( 'manage_options' );
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter, no state changes
-    $include_inactive = isset( $_GET['all'] ) && $is_admin;
+    $include_inactive = isset( $_GET['all'] );
     
     // Validate and get date range parameter
     $date_ranges = wporgcd_get_date_ranges();
