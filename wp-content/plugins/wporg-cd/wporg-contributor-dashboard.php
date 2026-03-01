@@ -10,15 +10,28 @@
 
 if (!defined('ABSPATH')) exit;
 
-// Include files
-require_once plugin_dir_path(__FILE__) . 'includes/helpers.php';
-require_once plugin_dir_path(__FILE__) . 'includes/events.php';
-require_once plugin_dir_path(__FILE__) . 'includes/import.php';
-require_once plugin_dir_path(__FILE__) . 'includes/profiles.php';
+// Shared
+require_once plugin_dir_path(__FILE__) . 'includes/database.php';
+require_once plugin_dir_path(__FILE__) . 'includes/config.php';
 require_once plugin_dir_path(__FILE__) . 'includes/queue.php';
+
+// Events
+require_once plugin_dir_path(__FILE__) . 'includes/events/schema.php';
+require_once plugin_dir_path(__FILE__) . 'includes/events/import.php';
+require_once plugin_dir_path(__FILE__) . 'includes/events/reference.php';
+require_once plugin_dir_path(__FILE__) . 'includes/events/rest-api.php';
+
+// Profiles
+require_once plugin_dir_path(__FILE__) . 'includes/profiles/schema.php';
+require_once plugin_dir_path(__FILE__) . 'includes/profiles/compute.php';
+require_once plugin_dir_path(__FILE__) . 'includes/profiles/filters.php';
+
+// Admin
 require_once plugin_dir_path(__FILE__) . 'admin/settings.php';
 require_once plugin_dir_path(__FILE__) . 'admin/import.php';
 require_once plugin_dir_path(__FILE__) . 'admin/profiles.php';
+
+// Frontend
 require_once plugin_dir_path(__FILE__) . 'frontend/dashboard.php';
 
 // Activation

@@ -3,7 +3,7 @@
  * CSV Import Tool
  * 
  * Admin UI for importing contributor events from CSV files.
- * Uses core import functions from includes/import.php
+ * Uses core import functions from includes/events/import.php
  * Processing is handled by the heartbeat queue system (includes/queue.php)
  * 
  * Expected CSV format: ID,user_id,user_registered,event_type,date_recorded
@@ -13,6 +13,127 @@ if (!defined('ABSPATH')) exit;
 
 // Batch size for processing (2000 rows per batch)
 define('WPORGCD_IMPORT_BATCH_SIZE', 2000);
+
+// ============================================================================
+// CSV PARSING HELPERS
+// ============================================================================
+
+/**
+ * Parse a CSV line into an event array
+ * 
+ * Expected format: ID,user_id,user_registered,event_type,date_recorded
+ * 
+ * @param string $line CSV line
+ * @return array|WP_Error Event array or error
+ */
+function wporgcd_parse_csv_line($line) {
+    $line = trim($line);
+    if (empty($line)) {
+        return new WP_Error('empty_line', 'Empty line');
+    }
+
+    $parts = str_getcsv($line);
+
+    if (count($parts) < 5) {
+        return new WP_Error(
+            'invalid_format',
+            'Not enough columns (expected 5, got ' . count($parts) . ')'
+        );
+    }
+
+    return array(
+        'event_id' => trim($parts[0]),
+        'contributor_id' => trim($parts[1]),
+        'contributor_created_date' => trim($parts[2]),
+        'event_type' => trim($parts[3]),
+        'event_created_date' => trim($parts[4]),
+    );
+}
+
+/**
+ * Check if a CSV line looks like a header
+ * 
+ * @param string $line First line of CSV
+ * @return bool True if it's a header
+ */
+function wporgcd_is_csv_header($line) {
+    return (stripos($line, 'id,') === 0 || stripos($line, 'user_id') !== false);
+}
+
+// ============================================================================
+// BATCH STATE MANAGEMENT
+// ============================================================================
+
+/**
+ * Get the state for a batch import
+ * 
+ * @param string $import_id Import identifier
+ * @return array|null State array or null if not found
+ */
+function wporgcd_get_import_state($import_id) {
+    return get_option('wporgcd_import_state_' . $import_id);
+}
+
+/**
+ * Update the state for a batch import
+ * 
+ * @param string $import_id Import identifier
+ * @param array $state State data
+ */
+function wporgcd_update_import_state($import_id, $state) {
+    update_option('wporgcd_import_state_' . $import_id, $state);
+}
+
+/**
+ * Get the current active import ID
+ * 
+ * @return string|null Import ID or null
+ */
+function wporgcd_get_current_import() {
+    return get_option('wporgcd_current_import');
+}
+
+/**
+ * Set the current active import ID
+ * 
+ * @param string|null $import_id Import ID or null to clear
+ */
+function wporgcd_set_current_import($import_id) {
+    if ($import_id === null) {
+        delete_option('wporgcd_current_import');
+    } else {
+        update_option('wporgcd_current_import', $import_id);
+    }
+}
+
+/**
+ * Create initial state for a new batch import
+ * 
+ * @param string $import_id Import identifier
+ * @param int $total_rows Total rows to process
+ * @param array $extra Additional state data
+ * @return array The created state
+ */
+function wporgcd_create_import_state($import_id, $total_rows, $extra = array()) {
+    $state = array_merge(array(
+        'import_id' => $import_id,
+        'total_rows' => $total_rows,
+        'processed' => 0,
+        'imported' => 0,
+        'status' => 'processing',
+        'started_at' => current_time('mysql'),
+        'current_offset' => 0,
+    ), $extra);
+
+    wporgcd_update_import_state($import_id, $state);
+    wporgcd_set_current_import($import_id);
+
+    return $state;
+}
+
+// ============================================================================
+// ADMIN MENU
+// ============================================================================
 
 // Add submenu page
 add_action('admin_menu', 'wporgcd_add_import_menu', 20);
@@ -111,8 +232,8 @@ function wporgcd_process_import_batch() {
     
     // Import the batch using core function
     if (!empty($events)) {
-        $imported = wporgcd_import_events($events);
-        $state['imported'] += $imported;
+        $results = wporgcd_import_events($events);
+        $state['imported'] += $results['imported'];
     }
     
     // Update state

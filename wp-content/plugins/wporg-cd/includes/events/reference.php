@@ -1,15 +1,11 @@
 <?php
 /**
- * Events Table
+ * Event Reference Dates
  * 
- * Database setup for contributor events.
+ * Functions for managing reference dates used in time-based calculations.
  */
 
 if (!defined('ABSPATH')) exit;
-
-// ============================================================================
-// REFERENCE DATES
-// ============================================================================
 
 /**
  * Get the reference end date for time-based calculations.
@@ -34,45 +30,17 @@ function wporgcd_get_reference_start_date() {
 function wporgcd_set_reference_date_from_events() {
     global $wpdb;
     $events_table = wporgcd_get_table('events');
-    
+
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     // $events_table is safe from wporgcd_get_table()
     $latest = $wpdb->get_var( "SELECT MAX(event_created_date) FROM $events_table" );
     $oldest = $wpdb->get_var( "SELECT MIN(event_created_date) FROM $events_table" );
     // phpcs:enable
-    
+
     if ( $latest ) {
         update_option( 'wporgcd_reference_end_date', gmdate( 'Y-m-d', strtotime( $latest ) ) );
     }
     if ( $oldest ) {
         update_option( 'wporgcd_reference_start_date', gmdate( 'Y-m-d', strtotime( $oldest ) ) );
     }
-}
-
-// ============================================================================
-// DATABASE SETUP
-// ============================================================================
-
-function wporgcd_create_events_table() {
-    global $wpdb;
-    $table_name = wporgcd_get_table('events');
-    $charset_collate = $wpdb->get_charset_collate();
-    
-    $sql = "CREATE TABLE IF NOT EXISTS $table_name (
-        internal_id bigint(20) NOT NULL AUTO_INCREMENT,
-        event_id varchar(255) NOT NULL,
-        contributor_id varchar(255) NOT NULL,
-        contributor_created_date datetime DEFAULT NULL,
-        event_type varchar(100) NOT NULL,
-        event_data longtext DEFAULT NULL,
-        event_created_date datetime DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (internal_id),
-        UNIQUE KEY event_id (event_id),
-        KEY contributor_id (contributor_id),
-        KEY event_type (event_type),
-        KEY event_created_date (event_created_date)
-    ) $charset_collate;";
-    
-    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-    dbDelta($sql);
 }
