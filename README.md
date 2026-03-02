@@ -158,48 +158,10 @@ The plugin uses a heartbeat-based AJAX queue instead of WP-Cron for more respons
 - Rate-limited to prevent overlapping runs
 - Modules hook via `wporgcd_process_queue` action
 
-## Development
-
-### Local Setup
-
-```bash
-# Start WordPress environment
-wp-env start
-
-# Access at http://localhost:8888
-```
-
-### File Structure
-
-```
-wp-content/plugins/wporg-cd/
-├── wporg-contributor-dashboard.php   # Main plugin bootstrap
-├── admin/
-│   ├── settings.php            # Event Types & Ladders pages
-│   ├── import.php              # CSV import page
-│   └── profiles.php            # Profile generation page
-├── frontend/
-│   └── dashboard.php           # Public dashboard & caching
-└── includes/
-    ├── config.php              # Config helpers
-    ├── database.php            # Table name helpers
-    ├── queue.php               # Heartbeat queue processor
-    ├── events/
-    │   ├── schema.php          # Events table schema
-    │   ├── import.php          # Event import logic
-    │   ├── reference.php       # Reference date helpers
-    │   └── rest-api.php        # REST API endpoints
-    └── profiles/
-        ├── schema.php          # Profiles table schema
-        ├── compute.php         # Profile computation & ladder logic
-        └── filters.php         # Profile query filters
-```
-
 ## Get Involved
 
 - **Slack**: [#contributor-dashboard](https://wordpress.slack.com/archives/C0AHJA81PDE)
-- **GitHub**: [felipevelzani/wporg-cd](https://github.com/felipevelzani/wporg-cd)
-- **Project Reference**: [Contributor Dashboard Pilot](https://docs.google.com/document/d/1geXNzsVZW44nfeSOlNAmvq4PBl6FZglbyOjScXbadFw/edit)
+- **Project**: [Handbook](https://make.wordpress.org/handbook/contributor-dashboard/)
 
 ## License
 
