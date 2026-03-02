@@ -506,7 +506,7 @@ section { margin-bottom: 40px; }
             </div>
             <a href="https://github.com/felipevelzani/wporg-cd" target="_blank">GitHub</a>
             <span style="margin: 0 8px;">·</span>
-            Interested in contributing? <a href="https://make.wordpress.org/project/2024/12/19/contributor-working-group-update-december-2024/" target="_blank">Learn more</a>
+            Interested in contributing? <a href="https://make.wordpress.org/handbook/contributor-dashboard/" target="_blank">Learn more</a>
                 </div>
             </div>
         </body>
