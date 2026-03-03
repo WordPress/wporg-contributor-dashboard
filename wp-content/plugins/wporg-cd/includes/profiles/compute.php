@@ -65,40 +65,20 @@ function wporgcd_compute_status($last_activity) {
  * Process a batch of profiles
  */
 function wporgcd_process_profile_batch() {
-    global $wpdb;
-    $events_table = wporgcd_get_table('events');
-    $profiles_table = wporgcd_get_table('profiles');
-
     // Check if there's an active generation
     $state = get_option('wporgcd_profile_generation_state');
     if (!$state || $state['status'] !== 'processing') {
         return;
     }
 
-    // Build the registration date filter
-    $date_filter = '';
-    if (!empty($state['min_registered_date'])) {
-        $date_filter = $wpdb->prepare(" AND e.contributor_created_date >= %s", $state['min_registered_date']);
-    }
+    // Get next batch from pre-computed list (avoids expensive per-batch discovery query)
+    $pending = $state['pending_user_ids'] ?? array();
 
-    // Get batch of unique contributor IDs that need profile updates
-    // Only include users who have at least one event that isn't 'updated_profile'
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table names are safe from wporgcd_get_table(), $date_filter is from prepare()
-    $user_ids = $wpdb->get_col( $wpdb->prepare(
-        "SELECT DISTINCT e.contributor_id 
-         FROM $events_table e
-         LEFT JOIN $profiles_table p ON e.contributor_id = p.user_id
-         WHERE (p.id IS NULL OR e.event_created_date > p.profile_computed_at)
-         AND e.event_type != 'updated_profile'
-         $date_filter
-         LIMIT %d",
-        WPORGCD_PROFILE_BATCH_SIZE
-    ) );
-
-    if (empty($user_ids)) {
+    if (empty($pending)) {
         // All done!
         $state['status'] = 'completed';
         $state['completed_at'] = current_time('mysql');
+        unset($state['pending_user_ids']);
         update_option('wporgcd_profile_generation_state', $state);
 
         // Fire action to regenerate dashboard cache
@@ -107,7 +87,8 @@ function wporgcd_process_profile_batch() {
         return;
     }
 
-    $batch_processed = 0;
+    // Pop next batch from the list
+    $user_ids = array_splice($pending, 0, WPORGCD_PROFILE_BATCH_SIZE);
 
     // Get snapshotted ladders from state (ensures consistency across batches)
     $ladders = $state['ladders_snapshot'] ?? wporgcd_get_ladders();
@@ -115,11 +96,11 @@ function wporgcd_process_profile_batch() {
     // Process each user in this batch
     foreach ($user_ids as $user_id) {
         wporgcd_compute_user_profile($user_id, $ladders);
-        $batch_processed++;
     }
 
-    // Update state
-    $state['processed'] += $batch_processed;
+    // Update state with remaining IDs
+    $state['processed'] += count($user_ids);
+    $state['pending_user_ids'] = $pending;
     update_option('wporgcd_profile_generation_state', $state);
 }
 
@@ -595,10 +576,9 @@ function wporgcd_start_profile_generation() {
     $date_filter = $wpdb->prepare(" AND contributor_created_date >= %s", $min_date);
     $date_filter_where = $wpdb->prepare(" AND e.contributor_created_date >= %s", $min_date);
 
-    // Count how many profiles need to be created/updated (filtered by date)
-    // Only count users who have at least one event that isn't 'updated_profile'
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     // Table names and filters are safe
+
     $total_contributors = (int) $wpdb->get_var(
         "SELECT COUNT(DISTINCT contributor_id) FROM $events_table WHERE event_type != 'updated_profile' $date_filter"
     );
@@ -607,8 +587,9 @@ function wporgcd_start_profile_generation() {
         "SELECT COUNT(*) FROM $profiles_table"
     );
 
-    $needing_update = (int) $wpdb->get_var(
-        "SELECT COUNT(DISTINCT e.contributor_id) 
+    // Fetch ALL user IDs that need processing (run once at start, avoids slow per-batch discovery)
+    $pending_user_ids = $wpdb->get_col(
+        "SELECT DISTINCT e.contributor_id 
          FROM $events_table e
          LEFT JOIN $profiles_table p ON e.contributor_id = p.user_id
          WHERE (p.id IS NULL OR e.event_created_date > p.profile_computed_at)
@@ -617,15 +598,18 @@ function wporgcd_start_profile_generation() {
     );
     // phpcs:enable
 
+    $needing_update = count( $pending_user_ids );
+
     // Snapshot current ladders to ensure consistency across all batches
     $ladders_snapshot = wporgcd_get_ladders();
 
-    // Store generation state - the heartbeat queue will pick this up
+    // Store generation state with pre-computed user IDs - the queue will pop from this list
     $state = array(
         'status' => 'processing',
         'started_at' => current_time('mysql'),
         'total_to_process' => $needing_update,
         'processed' => 0,
+        'pending_user_ids' => $pending_user_ids,
         'min_registered_date' => $min_date,
         'ladders_snapshot' => $ladders_snapshot,
     );
