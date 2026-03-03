@@ -20,11 +20,6 @@ function wporgcd_handle_profile_reset() {
         exit;
     }
 
-    if ( isset( $_POST['wporgcd_refresh_stats'] ) && check_admin_referer( 'wporgcd_profiles_nonce' ) ) {
-        wporgcd_invalidate_profile_stats_cache();
-        wp_safe_redirect( admin_url( 'admin.php?page=contributor-profiles&stats_refreshed=1' ) );
-        exit;
-    }
 }
 
 function wporgcd_add_profiles_menu() {
@@ -56,12 +51,6 @@ function wporgcd_render_profiles_page() {
         $message = '<div class="notice notice-warning"><p>Profile generation stopped.</p></div>';
     }
 
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only used for display message
-    if (isset($_GET['stats_refreshed'])) {
-        $message = '<div class="notice notice-success"><p>Stats refreshed.</p></div>';
-    }
-    
-    $profile_stats = wporgcd_get_profile_stats();
     $generation_status = wporgcd_get_profile_generation_status();
     
     ?>
@@ -73,8 +62,8 @@ function wporgcd_render_profiles_page() {
         echo $message;
         ?>
         
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 20px;">
-            <div style="background: #fff; border: 1px solid #ddd; padding: 20px;">
+        <div style="margin-top: 20px;">
+            <div style="background: #fff; border: 1px solid #ddd; padding: 20px; max-width: 600px;">
                 
                 <?php if ($generation_status['is_running']): ?>
                     <h2 style="margin-top: 0;">⏳ Generation in Progress</h2>
@@ -111,54 +100,12 @@ function wporgcd_render_profiles_page() {
                     
                     <p class="description">Deletes all existing profiles and regenerates them from events. Status (active/warning/inactive) is calculated based on last activity date.</p>
                     
-                    <?php if ($profile_stats['profiles_needing_update'] > 0): ?>
-                        <p style="background: #fff8e5; padding: 10px; border-left: 4px solid #ffb900; margin: 15px 0;">
-                            <strong><?php echo number_format($profile_stats['profiles_needing_update']); ?></strong> profiles need processing.
-                        </p>
-                    <?php endif; ?>
-                    
                     <form method="post" style="margin-top: 20px;" onsubmit="return confirm('This will delete all existing profiles and regenerate them. Continue?');">
                         <?php wp_nonce_field('wporgcd_profiles_nonce'); ?>
                         <button type="submit" name="wporgcd_start_profiles" class="button button-primary">Start Generation</button>
                     </form>
                 <?php endif; ?>
                 
-            </div>
-            
-            <div>
-                <div style="background: #fff; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
-                    <h3 style="margin-top: 0;">Stats</h3>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div style="background: #f0f0f1; padding: 12px; border-radius: 4px; text-align: center;">
-                            <div style="font-size: 20px; font-weight: bold;"><?php echo number_format($profile_stats['total_profiles']); ?></div>
-                            <div style="color: #646970; font-size: 11px;">Total</div>
-                        </div>
-                        <div style="background: #d4edda; padding: 12px; border-radius: 4px; text-align: center;">
-                            <div style="font-size: 20px; font-weight: bold; color: #155724;"><?php echo number_format($profile_stats['by_status']['active'] ?? 0); ?></div>
-                            <div style="color: #155724; font-size: 11px;">Active</div>
-                        </div>
-                        <div style="background: #fff3cd; padding: 12px; border-radius: 4px; text-align: center;">
-                            <div style="font-size: 20px; font-weight: bold; color: #856404;"><?php echo number_format($profile_stats['by_status']['warning'] ?? 0); ?></div>
-                            <div style="color: #856404; font-size: 11px;">Warning</div>
-                        </div>
-                        <div style="background: #f8d7da; padding: 12px; border-radius: 4px; text-align: center;">
-                            <div style="font-size: 20px; font-weight: bold; color: #721c24;"><?php echo number_format($profile_stats['by_status']['inactive'] ?? 0); ?></div>
-                            <div style="color: #721c24; font-size: 11px;">Inactive</div>
-                        </div>
-                    </div>
-
-                    <?php if ( ! empty( $profile_stats['cached_at'] ) ) : ?>
-                        <p style="margin: 15px 0 10px; color: #646970; font-size: 12px;">
-                            Last updated: <?php echo esc_html( $profile_stats['cached_at'] ); ?>
-                        </p>
-                    <?php endif; ?>
-
-                    <form method="post" style="margin-top: 10px;">
-                        <?php wp_nonce_field('wporgcd_profiles_nonce'); ?>
-                        <button type="submit" name="wporgcd_refresh_stats" class="button button-secondary">Refresh Stats</button>
-                    </form>
-                </div>
             </div>
         </div>
     </div>
