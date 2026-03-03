@@ -38,7 +38,7 @@ function wporgcd_ajax_heartbeat() {
 function wporgcd_maybe_process_queue() {
 	$last_run = get_transient( 'wporgcd_queue_last_run' );
 	
-	if ( $last_run && ( microtime( true ) - $last_run ) < 1 ) {
+	if ( $last_run && ( microtime( true ) - $last_run ) < 0.75 ) {
 		return;
 	}
 	

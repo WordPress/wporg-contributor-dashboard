@@ -19,6 +19,12 @@ function wporgcd_handle_profile_reset() {
         wp_safe_redirect( admin_url( 'admin.php?page=contributor-profiles' ) );
         exit;
     }
+
+    if ( isset( $_POST['wporgcd_refresh_stats'] ) && check_admin_referer( 'wporgcd_profiles_nonce' ) ) {
+        wporgcd_invalidate_profile_stats_cache();
+        wp_safe_redirect( admin_url( 'admin.php?page=contributor-profiles&stats_refreshed=1' ) );
+        exit;
+    }
 }
 
 function wporgcd_add_profiles_menu() {
@@ -48,6 +54,11 @@ function wporgcd_render_profiles_page() {
     if (isset($_POST['wporgcd_stop_profiles']) && check_admin_referer('wporgcd_profiles_nonce')) {
         wporgcd_stop_profile_generation();
         $message = '<div class="notice notice-warning"><p>Profile generation stopped.</p></div>';
+    }
+
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only used for display message
+    if (isset($_GET['stats_refreshed'])) {
+        $message = '<div class="notice notice-success"><p>Stats refreshed.</p></div>';
     }
     
     $profile_stats = wporgcd_get_profile_stats();
@@ -136,6 +147,17 @@ function wporgcd_render_profiles_page() {
                             <div style="color: #721c24; font-size: 11px;">Inactive</div>
                         </div>
                     </div>
+
+                    <?php if ( ! empty( $profile_stats['cached_at'] ) ) : ?>
+                        <p style="margin: 15px 0 10px; color: #646970; font-size: 12px;">
+                            Last updated: <?php echo esc_html( $profile_stats['cached_at'] ); ?>
+                        </p>
+                    <?php endif; ?>
+
+                    <form method="post" style="margin-top: 10px;">
+                        <?php wp_nonce_field('wporgcd_profiles_nonce'); ?>
+                        <button type="submit" name="wporgcd_refresh_stats" class="button button-secondary">Refresh Stats</button>
+                    </form>
                 </div>
             </div>
         </div>

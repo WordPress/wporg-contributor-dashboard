@@ -13,11 +13,14 @@ define('WPORGCD_STATUS_ACTIVE_DAYS', 30);
 define('WPORGCD_STATUS_WARNING_DAYS', 90);
 
 // Batch size for processing profiles
-define('WPORGCD_PROFILE_BATCH_SIZE', 500);
+define('WPORGCD_PROFILE_BATCH_SIZE', 1200);
 
 // Hook into queue processor
 add_action( 'wporgcd_process_queue', 'wporgcd_maybe_process_profiles', 20 );
 add_filter( 'wporgcd_has_pending_work', 'wporgcd_profiles_has_pending_work' );
+
+// Invalidate stats cache when profiles are regenerated
+add_action( 'wporgcd_profiles_generated', 'wporgcd_invalidate_profile_stats_cache' );
 
 function wporgcd_maybe_process_profiles() {
     $state = get_option( 'wporgcd_profile_generation_state' );
@@ -141,7 +144,7 @@ function wporgcd_compute_user_profile($user_id, $ladders = null) {
     $events = $wpdb->get_results( $wpdb->prepare(
         "SELECT event_id, event_type, event_created_date, contributor_created_date
          FROM $events_table 
-         WHERE contributor_id = %s 
+         WHERE contributor_id = %d 
          AND event_type NOT IN ($ignored_placeholders)
          ORDER BY event_created_date ASC",
         $query_args
@@ -192,7 +195,7 @@ function wporgcd_compute_user_profile($user_id, $ladders = null) {
     // Upsert profile
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe
     $existing = $wpdb->get_var( $wpdb->prepare(
-        "SELECT id FROM $profiles_table WHERE user_id = %s",
+        "SELECT id FROM $profiles_table WHERE user_id = %d",
         $user_id
     ) );
 
@@ -448,7 +451,7 @@ function wporgcd_get_profile($user_id) {
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe
     $profile = $wpdb->get_row( $wpdb->prepare(
-        "SELECT * FROM $table_name WHERE user_id = %s",
+        "SELECT * FROM $table_name WHERE user_id = %d",
         $user_id
     ) );
 
@@ -466,7 +469,18 @@ function wporgcd_get_profile($user_id) {
  * 
  * @return array Statistics about profiles
  */
-function wporgcd_get_profile_stats() {
+function wporgcd_get_profile_stats( $force_refresh = false ) {
+    $cache_key = 'wporgcd_profile_stats';
+    $cache_ttl = 5 * MINUTE_IN_SECONDS;
+
+    // Return cached stats unless force refresh requested
+    if ( ! $force_refresh ) {
+        $cached = get_transient( $cache_key );
+        if ( $cached !== false ) {
+            return $cached;
+        }
+    }
+
     global $wpdb;
     $profiles_table = wporgcd_get_table('profiles');
     $events_table = wporgcd_get_table('events');
@@ -483,6 +497,7 @@ function wporgcd_get_profile_stats() {
         ),
         'stale_profiles' => 0,
         'profiles_needing_update' => 0,
+        'cached_at' => current_time( 'mysql' ),
     );
 
     // Count by ladder
@@ -536,7 +551,17 @@ function wporgcd_get_profile_stats() {
     // Include filter info
     $stats['min_registered_date'] = $min_date;
 
+    // Cache the results
+    set_transient( $cache_key, $stats, $cache_ttl );
+
     return $stats;
+}
+
+/**
+ * Invalidate the profile stats cache
+ */
+function wporgcd_invalidate_profile_stats_cache() {
+    delete_transient( 'wporgcd_profile_stats' );
 }
 
 /**
