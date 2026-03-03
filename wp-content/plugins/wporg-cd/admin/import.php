@@ -42,8 +42,8 @@ function wporgcd_parse_csv_line($line) {
     }
 
     return array(
-        'event_id' => trim($parts[0]),
-        'contributor_id' => trim($parts[1]),
+        'event_id' => (int) trim($parts[0]),
+        'contributor_id' => (int) trim($parts[1]),
         'contributor_created_date' => trim($parts[2]),
         'event_type' => trim($parts[3]),
         'event_created_date' => trim($parts[4]),

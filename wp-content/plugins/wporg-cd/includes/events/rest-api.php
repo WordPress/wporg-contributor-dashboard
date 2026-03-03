@@ -79,6 +79,24 @@ function wporgcd_rest_validate_events($events) {
         );
     }
 
+    // Validate that event_id and contributor_id are numeric
+    foreach ($events as $index => $event) {
+        if (isset($event['event_id']) && !is_numeric($event['event_id'])) {
+            return new WP_Error(
+                'invalid_event_id',
+                sprintf('Event at index %d has non-numeric event_id.', $index),
+                array('status' => 400)
+            );
+        }
+        if (isset($event['contributor_id']) && !is_numeric($event['contributor_id'])) {
+            return new WP_Error(
+                'invalid_contributor_id',
+                sprintf('Event at index %d has non-numeric contributor_id.', $index),
+                array('status' => 400)
+            );
+        }
+    }
+
     return true;
 }
 

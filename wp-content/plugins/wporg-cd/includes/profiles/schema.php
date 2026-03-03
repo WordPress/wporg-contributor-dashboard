@@ -65,7 +65,7 @@ function wporgcd_create_profiles_table() {
 
     $sql = "CREATE TABLE IF NOT EXISTS $table_name (
         id bigint(20) NOT NULL AUTO_INCREMENT,
-        user_id varchar(255) NOT NULL,
+        user_id bigint(20) NOT NULL,
         registered_date datetime DEFAULT NULL,
         ladder_journey longtext DEFAULT NULL,
         event_counts longtext DEFAULT NULL,

@@ -17,8 +17,8 @@ function wporgcd_create_events_table() {
 
     $sql = "CREATE TABLE IF NOT EXISTS $table_name (
         internal_id bigint(20) NOT NULL AUTO_INCREMENT,
-        event_id varchar(255) NOT NULL,
-        contributor_id varchar(255) NOT NULL,
+        event_id bigint(20) NOT NULL,
+        contributor_id bigint(20) NOT NULL,
         contributor_created_date datetime DEFAULT NULL,
         event_type varchar(100) NOT NULL,
         event_data longtext DEFAULT NULL,
@@ -27,7 +27,8 @@ function wporgcd_create_events_table() {
         UNIQUE KEY event_id (event_id),
         KEY contributor_id (contributor_id),
         KEY event_type (event_type),
-        KEY event_created_date (event_created_date)
+        KEY event_created_date (event_created_date),
+        KEY idx_contributor_type_date (contributor_id, event_type, event_created_date)
     ) $charset_collate;";
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
