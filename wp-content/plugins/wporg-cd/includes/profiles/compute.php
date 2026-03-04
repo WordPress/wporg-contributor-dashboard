@@ -65,20 +65,26 @@ function wporgcd_compute_status($last_activity) {
  * Process a batch of profiles
  */
 function wporgcd_process_profile_batch() {
+    global $wpdb;
+
     // Check if there's an active generation
     $state = get_option('wporgcd_profile_generation_state');
     if (!$state || $state['status'] !== 'processing') {
         return;
     }
 
-    // Get next batch from pre-computed list (avoids expensive per-batch discovery query)
-    $pending = $state['pending_user_ids'] ?? array();
+    $queue_table = wporgcd_get_profile_queue_table();
 
-    if (empty($pending)) {
+    // Get next batch from queue table
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe
+    $user_ids = $wpdb->get_col(
+        $wpdb->prepare( "SELECT user_id FROM $queue_table LIMIT %d", WPORGCD_PROFILE_BATCH_SIZE )
+    );
+
+    if ( empty( $user_ids ) ) {
         // All done!
         $state['status'] = 'completed';
         $state['completed_at'] = current_time('mysql');
-        unset($state['pending_user_ids']);
         update_option('wporgcd_profile_generation_state', $state);
 
         // Fire action to regenerate dashboard cache
@@ -86,9 +92,6 @@ function wporgcd_process_profile_batch() {
 
         return;
     }
-
-    // Pop next batch from the list
-    $user_ids = array_splice($pending, 0, WPORGCD_PROFILE_BATCH_SIZE);
 
     // Get snapshotted ladders from state (ensures consistency across batches)
     $ladders = $state['ladders_snapshot'] ?? wporgcd_get_ladders();
@@ -98,9 +101,13 @@ function wporgcd_process_profile_batch() {
         wporgcd_compute_user_profile($user_id, $ladders);
     }
 
-    // Update state with remaining IDs
+    // Remove processed IDs from queue
+    $ids_sql = implode( ',', array_map( 'intval', $user_ids ) );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- IDs are sanitized with intval
+    $wpdb->query( "DELETE FROM $queue_table WHERE user_id IN ($ids_sql)" );
+
+    // Update state with progress
     $state['processed'] += count($user_ids);
-    $state['pending_user_ids'] = $pending;
     update_option('wporgcd_profile_generation_state', $state);
 }
 
@@ -567,6 +574,10 @@ function wporgcd_start_profile_generation() {
     global $wpdb;
     $events_table = wporgcd_get_table('events');
     $profiles_table = wporgcd_get_table('profiles');
+    $queue_table = wporgcd_get_profile_queue_table();
+
+    // Ensure queue table exists
+    wporgcd_create_profile_queue_table();
 
     // Set reference dates from events before generating profiles
     wporgcd_set_reference_date_from_events();
@@ -587,29 +598,31 @@ function wporgcd_start_profile_generation() {
         "SELECT COUNT(*) FROM $profiles_table"
     );
 
-    // Fetch ALL user IDs that need processing (run once at start, avoids slow per-batch discovery)
-    $pending_user_ids = $wpdb->get_col(
-        "SELECT DISTINCT e.contributor_id 
+    // Clear and populate queue table with user IDs that need processing
+    // This runs entirely in MySQL, avoiding PHP memory issues
+    $wpdb->query( "TRUNCATE TABLE $queue_table" );
+    $wpdb->query(
+        "INSERT INTO $queue_table (user_id)
+         SELECT DISTINCT e.contributor_id 
          FROM $events_table e
          LEFT JOIN $profiles_table p ON e.contributor_id = p.user_id
          WHERE (p.id IS NULL OR e.event_created_date > p.profile_computed_at)
          AND e.event_type != 'updated_profile'
          $date_filter_where"
     );
-    // phpcs:enable
 
-    $needing_update = count( $pending_user_ids );
+    $needing_update = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $queue_table" );
+    // phpcs:enable
 
     // Snapshot current ladders to ensure consistency across all batches
     $ladders_snapshot = wporgcd_get_ladders();
 
-    // Store generation state with pre-computed user IDs - the queue will pop from this list
+    // Store generation state - the queue table holds pending user IDs
     $state = array(
         'status' => 'processing',
         'started_at' => current_time('mysql'),
         'total_to_process' => $needing_update,
         'processed' => 0,
-        'pending_user_ids' => $pending_user_ids,
         'min_registered_date' => $min_date,
         'ladders_snapshot' => $ladders_snapshot,
     );
@@ -659,6 +672,8 @@ function wporgcd_get_profile_generation_status() {
  * Stop any ongoing profile generation
  */
 function wporgcd_stop_profile_generation() {
+    global $wpdb;
+
     // Update state
     $state = get_option('wporgcd_profile_generation_state');
     if ($state) {
@@ -667,6 +682,11 @@ function wporgcd_stop_profile_generation() {
         update_option('wporgcd_profile_generation_state', $state);
     }
 
+    // Clear the queue table
+    $queue_table = wporgcd_get_profile_queue_table();
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe
+    $wpdb->query( "TRUNCATE TABLE $queue_table" );
+
     return true;
 }
 
@@ -674,5 +694,12 @@ function wporgcd_stop_profile_generation() {
  * Reset profile generation state (for cleanup)
  */
 function wporgcd_reset_profile_generation() {
+    global $wpdb;
+
     delete_option('wporgcd_profile_generation_state');
+
+    // Clear the queue table
+    $queue_table = wporgcd_get_profile_queue_table();
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe
+    $wpdb->query( "TRUNCATE TABLE $queue_table" );
 }

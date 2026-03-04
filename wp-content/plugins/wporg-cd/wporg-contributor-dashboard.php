@@ -40,6 +40,7 @@ register_activation_hook(__FILE__, 'wporgcd_activate_plugin');
 function wporgcd_activate_plugin() {
     wporgcd_create_events_table();
     wporgcd_create_profiles_table();
+    wporgcd_create_profile_queue_table();
 }
 
 // Admin Menu

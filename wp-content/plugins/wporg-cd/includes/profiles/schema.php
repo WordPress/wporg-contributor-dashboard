@@ -87,3 +87,33 @@ function wporgcd_create_profiles_table() {
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
 }
+
+/**
+ * Create the profile generation queue table
+ * 
+ * Simple single-column table to store pending user IDs during
+ * batch profile generation, avoiding PHP memory issues.
+ */
+function wporgcd_create_profile_queue_table() {
+    global $wpdb;
+    $table_name = wporgcd_get_profile_queue_table();
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+        user_id bigint(20) NOT NULL,
+        PRIMARY KEY (user_id)
+    ) $charset_collate;";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
+ * Get the profile queue table name
+ * 
+ * @return string Table name with prefix
+ */
+function wporgcd_get_profile_queue_table() {
+    global $wpdb;
+    return $wpdb->prefix . 'wporgcd_profile_queue';
+}
