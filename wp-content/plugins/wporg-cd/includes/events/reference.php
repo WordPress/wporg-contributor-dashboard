@@ -26,6 +26,7 @@ function wporgcd_get_reference_start_date() {
 /**
  * Set the reference dates from the events table.
  * Call this at the start of profile generation.
+ * Start date is set to 5 years before the end date to exclude unreliable older data.
  */
 function wporgcd_set_reference_date_from_events() {
     global $wpdb;
@@ -34,13 +35,14 @@ function wporgcd_set_reference_date_from_events() {
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     // $events_table is safe from wporgcd_get_table()
     $latest = $wpdb->get_var( "SELECT MAX(event_created_date) FROM $events_table" );
-    $oldest = $wpdb->get_var( "SELECT MIN(event_created_date) FROM $events_table" );
     // phpcs:enable
 
     if ( $latest ) {
-        update_option( 'wporgcd_reference_end_date', gmdate( 'Y-m-d', strtotime( $latest ) ) );
-    }
-    if ( $oldest ) {
-        update_option( 'wporgcd_reference_start_date', gmdate( 'Y-m-d', strtotime( $oldest ) ) );
+        $end_date = gmdate( 'Y-m-d', strtotime( $latest ) );
+        update_option( 'wporgcd_reference_end_date', $end_date );
+
+        // Start date is 5 years before the end date
+        $start_date = gmdate( 'Y-m-d', strtotime( $end_date . ' -5 years' ) );
+        update_option( 'wporgcd_reference_start_date', $start_date );
     }
 }
