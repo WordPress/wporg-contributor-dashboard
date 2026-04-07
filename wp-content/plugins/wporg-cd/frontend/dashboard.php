@@ -263,10 +263,11 @@ function wporgcd_build_dashboard_html($include_inactive = false, $range_key = 'a
 :root { --bg: #f5f5f5; --card: #fff; --border: #e0e0e0; --text: #1a1a1a; --muted: #666; --light: #999; --blue: #3858e9; --green: #00a32a; --yellow: #dba617; --red: #dc3232; --purple: #826eb4; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
 .dash { max-width: 1400px; margin: 0 auto; padding: 40px 24px; }
-.header { display: flex; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
-.branding { display: flex; align-items: center; gap: 14px; }
+.logo-bar { text-align: center; padding: 16px 0 32px; }
+.logo-bar .wp-logo { width: 80px; height: 80px; object-fit: contain; display: inline-block; }
+.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; flex-wrap: wrap; gap: 20px; }
+.branding { display: flex; flex-direction: column; gap: 4px; max-width: 600px; }
 .branding-text { display: flex; flex-direction: column; gap: 2px; }
-.wp-logo { width: 56px; height: 56px; object-fit: contain; flex-shrink: 0; }
 h1 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
 .tagline { font-size: 14px; color: var(--muted); max-width: 520px; line-height: 1.5; }
 .learn-more { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--blue); text-decoration: none; cursor: pointer; margin-top: 4px; padding: 6px 0; transition: opacity 0.15s; }
@@ -284,7 +285,7 @@ h1 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
 h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
 h3 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
 section { margin-bottom: 40px; }
-.filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-left: auto; }
+.filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
 .range-filter { display: flex; gap: 2px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 4px; }
 .range-filter a { padding: 8px 14px; border-radius: 6px; font-size: 13px; color: var(--muted); text-decoration: none; transition: all 0.15s; white-space: nowrap; }
 .range-filter a:hover { color: var(--blue); }
@@ -303,8 +304,10 @@ section { margin-bottom: 40px; }
 @media (max-width: 992px) { 
   .dash { padding: 32px 20px; }
   h1 { font-size: 24px; }
+  .logo-bar { padding: 12px 0 24px; }
+  .logo-bar .wp-logo { width: 68px; height: 68px; }
   .header { flex-direction: column; align-items: flex-start; gap: 16px; }
-  .filters { margin-left: 0; flex-direction: column; align-items: stretch; }
+  .filters { margin-top: 0; flex-direction: column; align-items: stretch; }
   .range-filter { justify-content: center; }
   .toggle { justify-content: center; }
   .stat-val { font-size: 32px; }
@@ -313,7 +316,8 @@ section { margin-bottom: 40px; }
 }
 @media (max-width: 768px) { 
   .grid-4, .grid-2 { grid-template-columns: 1fr; gap: 12px; } 
-  .wp-logo { width: 48px; height: 48px; }
+  .logo-bar { padding: 4px 0 20px; }
+  .wp-logo { width: 60px; height: 60px; }
   h1 { font-size: 22px; }
   .tagline { font-size: 13px; }
   .stat-val { font-size: 28px; }
@@ -326,8 +330,8 @@ section { margin-bottom: 40px; }
 }
 @media (max-width: 576px) { 
   .dash { padding: 24px 16px; }
-  .branding { gap: 10px; }
-  .wp-logo { width: 44px; height: 44px; }
+  .logo-bar { padding: 0 0 16px; margin-bottom: 4px; }
+  .wp-logo { width: 52px; height: 52px; }
   h1 { font-size: 20px; }
   .range-filter { flex-wrap: wrap; justify-content: center; }
   .range-filter a { padding: 8px 10px; font-size: 12px; }
@@ -417,33 +421,33 @@ section { margin-bottom: 40px; }
         </head>
         <body>
     <div class="dash">
+        <div class="logo-bar">
+            <img
+                src="<?php echo esc_url( plugins_url( 'wp-logo.webp', __FILE__ ) ); ?>"
+                alt="WordPress logo"
+                class="wp-logo"
+            >
+        </div>
         <div class="header">
             <div class="branding">
-                <img
-                    src="<?php echo esc_url( plugins_url( 'wp-logo.webp', __FILE__ ) ); ?>"
-                    alt="WordPress logo"
-                    class="wp-logo"
-                >
-                <div class="branding-text">
-                    <h1>WordPress Contributor Dashboard</h1>
-                    <p class="tagline">Visualize and track WordPress contributor activity across the community.</p>
-                    <a class="learn-more" onclick="this.classList.toggle('open');document.getElementById('details-panel').classList.toggle('open');">
-                        Learn more
-                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4.5l3 3 3-3"/></svg>
-                    </a>
-                    <div id="details-panel" class="details-panel">
-                        <div class="details-content">
-                            <p>This dashboard responds to long-standing community requests for better visibility into contributor journeys—how people join, participate, and grow across Make teams.</p>
-                            <p>The contributor ladder framework maps activity into stages based on behavior patterns over time. It does not rank contributors or imply that some contributions matter more than others.</p>
-                            <p>Key features:</p>
-                            <ul>
-                                <li>Track contributions across event types</li>
-                                <li>Visualize progression through contributor ladders</li>
-                                <li>Identify active, at-risk, and inactive contributors</li>
-                                <li>Compare year-over-year trends</li>
-                            </ul>
-                            <p><a href="https://make.wordpress.org/handbook/contributor-dashboard/" target="_blank">Learn more in the handbook →</a></p>
-                        </div>
+                <h1>WordPress Contributor Dashboard</h1>
+                <p class="tagline">Visualize and track WordPress contributor activity across the community.</p>
+                <a class="learn-more" onclick="this.classList.toggle('open');document.getElementById('details-panel').classList.toggle('open');">
+                    Learn more
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4.5l3 3 3-3"/></svg>
+                </a>
+                <div id="details-panel" class="details-panel">
+                    <div class="details-content">
+                        <p>This dashboard responds to long-standing community requests for better visibility into contributor journeys—how people join, participate, and grow across Make teams.</p>
+                        <p>The contributor ladder framework maps activity into stages based on behavior patterns over time. It does not rank contributors or imply that some contributions matter more than others.</p>
+                        <p>Key features:</p>
+                        <ul>
+                            <li>Track contributions across event types</li>
+                            <li>Visualize progression through contributor ladders</li>
+                            <li>Identify active, at-risk, and inactive contributors</li>
+                            <li>Compare year-over-year trends</li>
+                        </ul>
+                        <p><a href="https://make.wordpress.org/handbook/contributor-dashboard/" target="_blank">Learn more in the handbook →</a></p>
                     </div>
                 </div>
             </div>
