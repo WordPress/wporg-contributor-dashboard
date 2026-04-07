@@ -408,15 +408,15 @@ section { margin-bottom: 40px; }
                     <div class="stat-lbl">Total Contributions</div>
                     </div>
                 <div class="card stat">
-                    <div class="stat-val green"><?php echo number_format($total_contributors); ?></div>
+                    <div class="stat-val blue"><?php echo number_format($total_contributors); ?></div>
                     <div class="stat-lbl">Contributors</div>
                         </div>
                 <div class="card stat">
-                    <div class="stat-val purple"><?php echo number_format($avg_events ?? 0, 1); ?></div>
+                    <div class="stat-val blue"><?php echo number_format($avg_events ?? 0, 1); ?></div>
                     <div class="stat-lbl">Avg Contributions/Contributor</div>
                         </div>
                 <div class="card stat">
-                    <div class="stat-val yellow"><?php echo number_format($single_event); ?></div>
+                    <div class="stat-val blue"><?php echo number_format($single_event); ?></div>
                     <div class="stat-lbl">One-time Contributors</div>
                     <div class="stat-detail"><?php echo esc_html( $total_contributors > 0 ? round( ( $single_event / $total_contributors ) * 100 ) : 0 ); ?>% drop-off risk</div>
                         </div>
