@@ -263,8 +263,8 @@ function wporgcd_build_dashboard_html($include_inactive = false, $range_key = 'a
 :root { --bg: #f5f5f5; --card: #fff; --border: #e0e0e0; --text: #1a1a1a; --muted: #666; --light: #999; --blue: #3858e9; --green: #00a32a; --yellow: #dba617; --red: #dc3232; --purple: #826eb4; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
 .dash { max-width: 1400px; margin: 0 auto; padding: 40px 24px; }
-.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 20px; }
-.branding { display: flex; align-items: flex-start; gap: 16px; }
+.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; gap: 20px; }
+.branding { display: flex; align-items: flex-start; gap: 16px; flex: 1; min-width: 0; }
 .wp-logo { width: 64px; height: 64px; object-fit: contain; flex-shrink: 0; border-radius: 12px; }
 .branding-text { display: flex; flex-direction: column; gap: 4px; }
 h1 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
@@ -303,8 +303,9 @@ section { margin-bottom: 40px; }
 @media (max-width: 992px) { 
   .dash { padding: 32px 20px; }
   h1 { font-size: 24px; }
-  .header { flex-direction: column; align-items: flex-start; gap: 16px; }
-  .filters { margin-top: 0; flex-direction: column; align-items: stretch; }
+  .header { flex-wrap: wrap; }
+  .branding { flex: auto; }
+  .filters { margin-top: 0; flex-direction: column; align-items: stretch; width: 100%; }
   .range-filter { justify-content: center; }
   .toggle { justify-content: center; }
   .stat-val { font-size: 32px; }
