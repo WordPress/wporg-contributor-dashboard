@@ -1,10 +1,10 @@
-# WP.org Contributor Dashboard
+# WordPress Contributor Dashboard
 
 A WordPress plugin for tracking contributor activity and visualizing engagement across progression ladders.
 
 ## Project Overview
 
-The Contributor Dashboard Pilot responds to long-standing community requests for better visibility into contributor journeys—how people join, participate, and grow across Make teams. Contribution activity, especially non-code work, is spread across many tools and systems, making it difficult to recognize contributors, understand engagement over time, and identify where support is needed.
+The WordPress Contributor Dashboard responds to long-standing community requests for better visibility into contributor journeys—how people join, participate, and grow across Make teams. Contribution activity, especially non-code work, is spread across many tools and systems, making it difficult to recognize contributors, understand engagement over time, and identify where support is needed.
 
 ### Contributor Ladder Framework
 

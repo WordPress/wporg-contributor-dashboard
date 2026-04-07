@@ -91,7 +91,7 @@ function wporgcd_render_frontend_dashboard() {
     
     // No cache - show message
     wp_die(
-        '<h1>Contributor Dashboard</h1>' .
+        '<h1>WordPress Contributor Dashboard</h1>' .
         '<p>Dashboard not yet generated.</p>' .
         '<p><a href="' . esc_url( admin_url( 'admin.php?page=contributor-profiles' ) ) . '">Generate profiles</a> to build the dashboard.</p>',
         'Dashboard Not Ready',
@@ -257,14 +257,18 @@ function wporgcd_build_dashboard_html($include_inactive = false, $range_key = 'a
         <head>
         <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>Contributor Dashboard</title>
+            <title>WordPress Contributor Dashboard</title>
             <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root { --bg: #f5f5f5; --card: #fff; --border: #e0e0e0; --text: #1a1a1a; --muted: #666; --light: #999; --blue: #0073aa; --green: #00a32a; --yellow: #dba617; --red: #dc3232; --purple: #826eb4; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
 .dash { max-width: 1400px; margin: 0 auto; padding: 40px 24px; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 16px; }
+.branding { display: flex; align-items: center; gap: 16px; }
+.branding-text { display: flex; flex-direction: column; gap: 6px; }
+.wp-logo { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
 h1 { font-size: 32px; font-weight: 700; margin: 0; }
+.tagline { font-size: 14px; color: var(--muted); max-width: 680px; }
 h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
 h3 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
 section { margin-bottom: 40px; }
@@ -282,7 +286,7 @@ section { margin-bottom: 40px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 32px; }
 @media (max-width: 1200px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px) { .grid-4, .grid-2 { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .grid-4, .grid-2 { grid-template-columns: 1fr; } .header, .branding { align-items: flex-start; } .wp-logo { width: 40px; height: 40px; } }
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
 .stat { text-align: center; padding: 24px 20px; }
 .stat-val { font-size: 36px; font-weight: 700; line-height: 1; margin-bottom: 8px; }
@@ -338,7 +342,17 @@ section { margin-bottom: 40px; }
         <body>
     <div class="dash">
         <div class="header">
-            <h1>Contributor Dashboard</h1>
+            <div class="branding">
+                <img
+                    src="<?php echo esc_url( plugins_url( 'wp-logo.webp', __FILE__ ) ); ?>"
+                    alt="WordPress logo"
+                    class="wp-logo"
+                >
+                <div class="branding-text">
+                    <h1>WordPress Contributor Dashboard</h1>
+                    <p class="tagline">Visualize and track WordPress contributor activity across the community.</p>
+                </div>
+            </div>
             <div class="filters">
                 <div class="range-filter">
                     <?php foreach ($date_ranges as $key => $r): 

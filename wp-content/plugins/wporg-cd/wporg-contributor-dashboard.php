@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Contributor Dashboard
- * Description: Store contributor events and assign them to contributor ladders
+ * Plugin Name: WordPress Contributor Dashboard
+ * Description: Visualize and track WordPress contributor activity across the community
  * Version: 1.0.0
  * Author: WordPress.org
  * License: GPL-2.0-or-later
@@ -55,7 +55,7 @@ function wporgcd_admin_menu() {
 function wporgcd_render_admin_dashboard() {
     ?>
     <div class="wrap">
-        <h1>Contributor Dashboard</h1>
+        <h1>WordPress Contributor Dashboard</h1>
         <p><a href="<?php echo esc_url( home_url() ); ?>" class="button button-primary" target="_blank">View Dashboard →</a></p>
     </div>
     <?php

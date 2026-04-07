@@ -1,4 +1,4 @@
-=== Contributor Dashboard ===
+=== WordPress Contributor Dashboard ===
 Contributors: wordpressdotorg
 Tags: contributors, dashboard, analytics, community
 Requires at least: 6.0
@@ -12,7 +12,7 @@ A WordPress plugin for tracking contributor activity and visualizing engagement 
 
 == Description ==
 
-The Contributor Dashboard Pilot responds to long-standing community requests for better visibility into contributor journeys—how people join, participate, and grow across Make teams.
+The WordPress Contributor Dashboard responds to long-standing community requests for better visibility into contributor journeys—how people join, participate, and grow across Make teams.
 
 = Contributor Ladder Framework =
 
