@@ -263,14 +263,14 @@ function wporgcd_build_dashboard_html($include_inactive = false, $range_key = 'a
 :root { --bg: #f5f5f5; --card: #fff; --border: #e0e0e0; --text: #1a1a1a; --muted: #666; --light: #999; --blue: #3858e9; --green: #00a32a; --yellow: #dba617; --red: #dc3232; --purple: #826eb4; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
 .dash { max-width: 1400px; margin: 0 auto; padding: 40px 24px; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 16px; }
-.branding { display: flex; align-items: flex-start; gap: 20px; }
-.branding-text { display: flex; flex-direction: column; gap: 6px; }
-.wp-logo { width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-h1 { font-size: 32px; font-weight: 700; margin: 0; }
-.tagline { font-size: 14px; color: var(--muted); max-width: 680px; }
-.learn-more { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--blue); text-decoration: none; cursor: pointer; margin-top: 8px; }
-.learn-more:hover { text-decoration: underline; }
+.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 20px; }
+.branding { display: flex; align-items: flex-start; gap: 16px; }
+.branding-text { display: flex; flex-direction: column; gap: 4px; }
+.wp-logo { width: 64px; height: 64px; object-fit: contain; flex-shrink: 0; padding: 10px; background: var(--card); border: 1px solid rgba(0,0,0,0.06); border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+h1 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
+.tagline { font-size: 14px; color: var(--muted); max-width: 520px; line-height: 1.5; }
+.learn-more { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--blue); text-decoration: none; cursor: pointer; margin-top: 4px; padding: 6px 0; transition: opacity 0.15s; }
+.learn-more:hover { opacity: 0.8; }
 .learn-more svg { width: 12px; height: 12px; transition: transform 0.2s; }
 .learn-more.open svg { transform: rotate(180deg); }
 .details-panel { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.2s; opacity: 0; }
@@ -284,21 +284,79 @@ h1 { font-size: 32px; font-weight: 700; margin: 0; }
 h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
 h3 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
 section { margin-bottom: 40px; }
-.filters { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.range-filter { display: flex; gap: 4px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 4px; }
-.range-filter a { padding: 6px 12px; border-radius: 4px; font-size: 13px; color: var(--muted); text-decoration: none; transition: all 0.15s; }
+.filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.range-filter { display: flex; gap: 2px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 4px; }
+.range-filter a { padding: 8px 14px; border-radius: 6px; font-size: 13px; color: var(--muted); text-decoration: none; transition: all 0.15s; white-space: nowrap; }
 .range-filter a:hover { color: var(--blue); }
 .range-filter a.active { background: var(--blue); color: #fff; }
 .toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-.toggle a { display: flex; align-items: center; gap: 8px; color: var(--muted); text-decoration: none; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); transition: all 0.15s; }
+.toggle a { display: flex; align-items: center; gap: 8px; color: var(--muted); text-decoration: none; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); transition: all 0.15s; white-space: nowrap; }
 .toggle a:hover { border-color: var(--blue); color: var(--blue); }
 .toggle .check { width: 16px; height: 16px; border: 2px solid currentColor; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
 .toggle .check.on { background: var(--blue); border-color: var(--blue); color: #fff; }
 .toggle .check svg { width: 10px; height: 10px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 32px; }
-@media (max-width: 1200px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px) { .grid-4, .grid-2 { grid-template-columns: 1fr; } .header { flex-direction: column; align-items: flex-start; } .wp-logo { width: 56px; height: 56px; padding: 10px; border-radius: 12px; } }
+@media (max-width: 1200px) { 
+  .grid-4 { grid-template-columns: repeat(2, 1fr); } 
+}
+@media (max-width: 992px) { 
+  .dash { padding: 32px 20px; }
+  h1 { font-size: 24px; }
+  .header { flex-direction: column; align-items: stretch; gap: 16px; }
+  .filters { flex-direction: column; align-items: stretch; }
+  .range-filter { justify-content: center; }
+  .toggle { justify-content: center; }
+  .stat-val { font-size: 32px; }
+  .funnel-lbl-wrap { width: 100px; }
+  .funnel-info { min-width: 150px; font-size: 11px; }
+}
+@media (max-width: 768px) { 
+  .grid-4, .grid-2 { grid-template-columns: 1fr; gap: 12px; } 
+  .wp-logo { width: 52px; height: 52px; padding: 8px; border-radius: 10px; }
+  h1 { font-size: 22px; }
+  .tagline { font-size: 13px; }
+  .stat-val { font-size: 28px; }
+  .stat { padding: 20px 16px; }
+  .card { padding: 16px; }
+  h2 { font-size: 16px; }
+  .funnel-bar-wrap { flex: 1; }
+  .funnel-bar { height: 28px; font-size: 13px; }
+  .funnel-arrow { margin-left: 112px; font-size: 11px; }
+}
+@media (max-width: 576px) { 
+  .dash { padding: 24px 16px; }
+  .branding { gap: 12px; }
+  .wp-logo { width: 48px; height: 48px; }
+  h1 { font-size: 20px; }
+  .range-filter { flex-wrap: wrap; justify-content: center; }
+  .range-filter a { padding: 8px 10px; font-size: 12px; }
+  .toggle a { padding: 10px 12px; font-size: 12px; }
+  .stat-val { font-size: 24px; }
+  .stat-lbl { font-size: 12px; }
+  .funnel-row { flex-wrap: wrap; gap: 8px; }
+  .funnel-lbl-wrap { width: 100%; justify-content: flex-start; }
+  .funnel-bar-wrap { width: 100%; order: 2; }
+  .funnel-info { width: 100%; order: 3; justify-content: flex-start; min-width: auto; }
+  .funnel-arrow { margin-left: 0; text-align: left; padding-left: 4px; }
+  .footer { padding: 20px 16px; margin-top: 32px; }
+  .footer-links { flex-direction: column; gap: 12px; }
+  .footer-links .sep { display: none; }
+  .footer-links a { padding: 8px 16px; }
+  .mobile-break { display: block; }
+  .desktop-sep { display: none; }
+}
+@media (max-width: 480px) { 
+  .dash { padding: 20px 12px; }
+  h1 { font-size: 18px; }
+  .tagline { font-size: 12px; }
+  .stat-val { font-size: 22px; }
+  .card { padding: 14px; border-radius: 10px; }
+  .item { padding: 8px 0; gap: 8px; }
+  .item-name { font-size: 13px; }
+  .bar-wrap { width: 60px; }
+  .footer { padding: 16px 12px; font-size: 11px; }
+}
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
 .stat { text-align: center; padding: 24px 20px; }
 .stat-val { font-size: 36px; font-weight: 700; line-height: 1; margin-bottom: 8px; }
@@ -347,8 +405,14 @@ section { margin-bottom: 40px; }
 .insight { padding: 8px 0; font-size: 14px; color: var(--muted); display: flex; align-items: flex-start; gap: 8px; }
 .insight strong { color: var(--text); }
 .insight .info-icon { margin-top: 2px; }
-.footer { text-align: center; padding: 20px; color: var(--light); font-size: 12px; border-top: 1px solid var(--border); margin-top: 40px; }
-.footer a { color: var(--blue); text-decoration: none; }
+.footer { text-align: center; padding: 24px 20px; color: var(--light); font-size: 12px; border-top: 1px solid var(--border); margin-top: 40px; }
+.footer a { color: var(--blue); text-decoration: none; padding: 4px 0; }
+.footer a:hover { text-decoration: underline; }
+.footer-meta { margin-bottom: 12px; line-height: 1.6; }
+.footer-links { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.footer-links .sep { color: var(--border); }
+.mobile-break { display: none; }
+.desktop-sep { }
             </style>
         </head>
         <body>
@@ -544,14 +608,18 @@ section { margin-bottom: 40px; }
                 </div>
                 
         <div class="footer">
-            <div style="margin-bottom: 8px;">
+            <div class="footer-meta">
                 <?php echo esc_html( number_format( $profile_count ) ); ?> profiles<?php echo $include_inactive ? '' : ' (active only)'; ?><?php echo $range['days'] !== null ? ' · Registered: ' . esc_html( $range['label'] ) : ''; ?>
-                · Data: <?php echo esc_html( gmdate( 'M j, Y', strtotime( $data_start_date ) ) ); ?> – <?php echo esc_html( gmdate( 'M j, Y', strtotime( $data_end_date ) ) ); ?>
+                <br class="mobile-break">
+                <span class="desktop-sep">·</span> Data: <?php echo esc_html( gmdate( 'M j, Y', strtotime( $data_start_date ) ) ); ?> – <?php echo esc_html( gmdate( 'M j, Y', strtotime( $data_end_date ) ) ); ?>
             </div>
-            <a href="https://github.com/felipevelzani/wporg-cd" target="_blank">GitHub</a>
-            <span style="margin: 0 8px;">·</span>
-            Interested in contributing? <a href="https://make.wordpress.org/handbook/contributor-dashboard/" target="_blank">Learn more</a>
-                </div>
+            <div class="footer-links">
+                <a href="https://github.com/felipevelzani/wporg-cd" target="_blank">GitHub</a>
+                <span class="sep">·</span>
+                <span>Interested in contributing?</span>
+                <a href="https://make.wordpress.org/handbook/contributor-dashboard/" target="_blank">Learn more</a>
+            </div>
+        </div>
             </div>
         </body>
         </html>
