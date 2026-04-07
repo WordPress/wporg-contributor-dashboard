@@ -260,15 +260,27 @@ function wporgcd_build_dashboard_html($include_inactive = false, $range_key = 'a
             <title>WordPress Contributor Dashboard</title>
             <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-:root { --bg: #f5f5f5; --card: #fff; --border: #e0e0e0; --text: #1a1a1a; --muted: #666; --light: #999; --blue: #0073aa; --green: #00a32a; --yellow: #dba617; --red: #dc3232; --purple: #826eb4; }
+:root { --bg: #f5f5f5; --card: #fff; --border: #e0e0e0; --text: #1a1a1a; --muted: #666; --light: #999; --blue: #3858e9; --green: #00a32a; --yellow: #dba617; --red: #dc3232; --purple: #826eb4; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
 .dash { max-width: 1400px; margin: 0 auto; padding: 40px 24px; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 16px; }
-.branding { display: flex; align-items: center; gap: 16px; }
+.branding { display: flex; align-items: flex-start; gap: 20px; }
 .branding-text { display: flex; flex-direction: column; gap: 6px; }
-.wp-logo { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
+.wp-logo { width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
 h1 { font-size: 32px; font-weight: 700; margin: 0; }
 .tagline { font-size: 14px; color: var(--muted); max-width: 680px; }
+.learn-more { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--blue); text-decoration: none; cursor: pointer; margin-top: 8px; }
+.learn-more:hover { text-decoration: underline; }
+.learn-more svg { width: 12px; height: 12px; transition: transform 0.2s; }
+.learn-more.open svg { transform: rotate(180deg); }
+.details-panel { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.2s; opacity: 0; }
+.details-panel.open { max-height: 500px; opacity: 1; transition: max-height 0.4s ease-in, opacity 0.3s; }
+.details-content { padding: 16px 0 8px; font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 720px; }
+.details-content p { margin-bottom: 12px; }
+.details-content ul { margin: 0 0 12px 20px; }
+.details-content li { margin-bottom: 4px; }
+.details-content a { color: var(--blue); text-decoration: none; }
+.details-content a:hover { text-decoration: underline; }
 h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
 h3 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
 section { margin-bottom: 40px; }
@@ -286,7 +298,7 @@ section { margin-bottom: 40px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 32px; }
 @media (max-width: 1200px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px) { .grid-4, .grid-2 { grid-template-columns: 1fr; } .header, .branding { align-items: flex-start; } .wp-logo { width: 40px; height: 40px; } }
+@media (max-width: 768px) { .grid-4, .grid-2 { grid-template-columns: 1fr; } .header { flex-direction: column; align-items: flex-start; } .wp-logo { width: 56px; height: 56px; padding: 10px; border-radius: 12px; } }
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
 .stat { text-align: center; padding: 24px 20px; }
 .stat-val { font-size: 36px; font-weight: 700; line-height: 1; margin-bottom: 8px; }
@@ -330,7 +342,7 @@ section { margin-bottom: 40px; }
 .info-icon:hover .info-tip { opacity: 1; visibility: visible; }
 .info-tip strong { color: #fff; }
 .info-tip .req { display: block; padding: 2px 0; }
-.insights { background: #f0f7ff; border: 1px solid #d0e3f7; border-radius: 8px; padding: 20px; margin-bottom: 32px; }
+.insights { background: #eef1fd; border: 1px solid #c5cff5; border-radius: 8px; padding: 20px; margin-bottom: 32px; }
 .insights h3 { color: var(--blue); margin-bottom: 16px; }
 .insight { padding: 8px 0; font-size: 14px; color: var(--muted); display: flex; align-items: flex-start; gap: 8px; }
 .insight strong { color: var(--text); }
@@ -351,6 +363,24 @@ section { margin-bottom: 40px; }
                 <div class="branding-text">
                     <h1>WordPress Contributor Dashboard</h1>
                     <p class="tagline">Visualize and track WordPress contributor activity across the community.</p>
+                    <a class="learn-more" onclick="this.classList.toggle('open');document.getElementById('details-panel').classList.toggle('open');">
+                        Learn more
+                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4.5l3 3 3-3"/></svg>
+                    </a>
+                    <div id="details-panel" class="details-panel">
+                        <div class="details-content">
+                            <p>This dashboard responds to long-standing community requests for better visibility into contributor journeys—how people join, participate, and grow across Make teams.</p>
+                            <p>The contributor ladder framework maps activity into stages (Connect, Contribute, Engage, Perform, Lead) based on behavior patterns over time. It does not rank contributors or imply that some contributions matter more than others.</p>
+                            <p>Key features:</p>
+                            <ul>
+                                <li>Track contributions across event types</li>
+                                <li>Visualize progression through contributor ladders</li>
+                                <li>Identify active, at-risk, and inactive contributors</li>
+                                <li>Compare year-over-year trends</li>
+                            </ul>
+                            <p><a href="https://make.wordpress.org/handbook/contributor-dashboard/" target="_blank">Learn more in the handbook →</a></p>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="filters">
