@@ -263,10 +263,10 @@ function wporgcd_build_dashboard_html($include_inactive = false, $range_key = 'a
 :root { --bg: #f5f5f5; --card: #fff; --border: #e0e0e0; --text: #1a1a1a; --muted: #666; --light: #999; --blue: #3858e9; --green: #00a32a; --yellow: #dba617; --red: #dc3232; --purple: #826eb4; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
 .dash { max-width: 1400px; margin: 0 auto; padding: 40px 24px; }
-.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 20px; }
-.branding { display: flex; align-items: flex-start; gap: 16px; }
-.branding-text { display: flex; flex-direction: column; gap: 4px; }
-.wp-logo { width: 64px; height: 64px; object-fit: contain; flex-shrink: 0; padding: 10px; background: var(--card); border: 1px solid rgba(0,0,0,0.06); border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+.header { display: flex; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+.branding { display: flex; align-items: center; gap: 14px; }
+.branding-text { display: flex; flex-direction: column; gap: 2px; }
+.wp-logo { width: 56px; height: 56px; object-fit: contain; flex-shrink: 0; }
 h1 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
 .tagline { font-size: 14px; color: var(--muted); max-width: 520px; line-height: 1.5; }
 .learn-more { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--blue); text-decoration: none; cursor: pointer; margin-top: 4px; padding: 6px 0; transition: opacity 0.15s; }
@@ -284,7 +284,7 @@ h1 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
 h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
 h3 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
 section { margin-bottom: 40px; }
-.filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-left: auto; }
 .range-filter { display: flex; gap: 2px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 4px; }
 .range-filter a { padding: 8px 14px; border-radius: 6px; font-size: 13px; color: var(--muted); text-decoration: none; transition: all 0.15s; white-space: nowrap; }
 .range-filter a:hover { color: var(--blue); }
@@ -303,8 +303,8 @@ section { margin-bottom: 40px; }
 @media (max-width: 992px) { 
   .dash { padding: 32px 20px; }
   h1 { font-size: 24px; }
-  .header { flex-direction: column; align-items: stretch; gap: 16px; }
-  .filters { flex-direction: column; align-items: stretch; }
+  .header { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .filters { margin-left: 0; flex-direction: column; align-items: stretch; }
   .range-filter { justify-content: center; }
   .toggle { justify-content: center; }
   .stat-val { font-size: 32px; }
@@ -313,7 +313,7 @@ section { margin-bottom: 40px; }
 }
 @media (max-width: 768px) { 
   .grid-4, .grid-2 { grid-template-columns: 1fr; gap: 12px; } 
-  .wp-logo { width: 52px; height: 52px; padding: 8px; border-radius: 10px; }
+  .wp-logo { width: 48px; height: 48px; }
   h1 { font-size: 22px; }
   .tagline { font-size: 13px; }
   .stat-val { font-size: 28px; }
@@ -326,8 +326,8 @@ section { margin-bottom: 40px; }
 }
 @media (max-width: 576px) { 
   .dash { padding: 24px 16px; }
-  .branding { gap: 12px; }
-  .wp-logo { width: 48px; height: 48px; }
+  .branding { gap: 10px; }
+  .wp-logo { width: 44px; height: 44px; }
   h1 { font-size: 20px; }
   .range-filter { flex-wrap: wrap; justify-content: center; }
   .range-filter a { padding: 8px 10px; font-size: 12px; }
@@ -434,7 +434,7 @@ section { margin-bottom: 40px; }
                     <div id="details-panel" class="details-panel">
                         <div class="details-content">
                             <p>This dashboard responds to long-standing community requests for better visibility into contributor journeys—how people join, participate, and grow across Make teams.</p>
-                            <p>The contributor ladder framework maps activity into stages (Connect, Contribute, Engage, Perform, Lead) based on behavior patterns over time. It does not rank contributors or imply that some contributions matter more than others.</p>
+                            <p>The contributor ladder framework maps activity into stages based on behavior patterns over time. It does not rank contributors or imply that some contributions matter more than others.</p>
                             <p>Key features:</p>
                             <ul>
                                 <li>Track contributions across event types</li>
