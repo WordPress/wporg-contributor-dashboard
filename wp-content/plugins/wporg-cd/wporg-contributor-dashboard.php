@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) exit;
 
 // Shared
 require_once plugin_dir_path(__FILE__) . 'includes/database.php';
-require_once plugin_dir_path(__FILE__) . 'includes/config.php';
+require_once plugin_dir_path(__FILE__) . 'config.php';
 require_once plugin_dir_path(__FILE__) . 'includes/queue.php';
 
 // Events
@@ -27,7 +27,6 @@ require_once plugin_dir_path(__FILE__) . 'includes/profiles/compute.php';
 require_once plugin_dir_path(__FILE__) . 'includes/profiles/filters.php';
 
 // Admin
-require_once plugin_dir_path(__FILE__) . 'admin/settings.php';
 require_once plugin_dir_path(__FILE__) . 'admin/import.php';
 require_once plugin_dir_path(__FILE__) . 'admin/profiles.php';
 
@@ -51,8 +50,6 @@ add_action('admin_menu', 'wporgcd_admin_menu');
 
 function wporgcd_admin_menu() {
     add_menu_page('Contributors', 'Contributors', 'manage_options', 'contributor-dashboard', 'wporgcd_render_admin_dashboard', 'dashicons-groups', 30);
-    add_submenu_page('contributor-dashboard', 'Event Types', 'Event Types', 'manage_options', 'contributor-event-types', 'wporgcd_render_event_types_page');
-    add_submenu_page('contributor-dashboard', 'Ladders', 'Ladders', 'manage_options', 'contributor-ladders', 'wporgcd_render_ladders_page');
 }
 
 function wporgcd_render_admin_dashboard() {

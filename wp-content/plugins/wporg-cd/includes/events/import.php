@@ -207,46 +207,16 @@ function wporgcd_bulk_insert_events($events, $batch_size = 500) {
 }
 
 /**
- * Import multiple events at once
- * 
- * Uses bulk insert for performance (10-50x faster than single inserts).
- * 
- * @param array $events Array of event arrays
- * @param array $options Optional settings:
- *                       - auto_create_event_types: bool (default true)
- *                       - batch_size: int (default 500)
- * @return array Results with 'imported', 'skipped', and 'errors' counts
+ * Import multiple events at once.
+ *
+ * Thin wrapper over wporgcd_bulk_insert_events() that uses bulk insert for
+ * performance (10-50x faster than single inserts). Event types referenced by
+ * events are NOT auto-registered; unknown slugs still import fine and the
+ * frontend views fall back to displaying the slug.
+ *
+ * @param array $events Array of event arrays.
+ * @return array Results with 'imported', 'skipped', and 'errors' counts.
  */
-function wporgcd_import_events($events, $options = array()) {
-    $defaults = array(
-        'auto_create_event_types' => true,
-        'batch_size' => 500,
-    );
-    $options = wp_parse_args($options, $defaults);
-
-    // Collect all unique event types from the events before inserting
-    if ($options['auto_create_event_types']) {
-        $event_types = wporgcd_get_event_types();
-        $new_event_types = array();
-
-        foreach ($events as $event) {
-            if (!empty($event['event_type'])) {
-                $event_type = sanitize_key($event['event_type']);
-                if (!isset($event_types[$event_type]) && !isset($new_event_types[$event_type])) {
-                    $new_event_types[$event_type] = array(
-                        'title' => ucwords(str_replace('_', ' ', $event_type))
-                    );
-                }
-            }
-        }
-
-        // Save new event types
-        if (!empty($new_event_types)) {
-            $event_types = array_merge($event_types, $new_event_types);
-            update_option('wporgcd_event_types', $event_types);
-        }
-    }
-
-    // Use bulk insert for the actual insertion
-    return wporgcd_bulk_insert_events($events, $options['batch_size']);
+function wporgcd_import_events($events) {
+    return wporgcd_bulk_insert_events($events, 500);
 }

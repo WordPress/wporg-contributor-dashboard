@@ -37,7 +37,7 @@ Raw activity records stored in `wp_wporgcd_events`. Each event has:
 - `contributor_created_date` — Optional registration date
 - `event_data` — Optional JSON metadata
 
-Events are immutable once imported. New event types are auto-created during import.
+Events are immutable once imported.
 
 ### Tier 2: Profiles
 
@@ -118,11 +118,13 @@ Current filters per view:
 - `?contribution_date_start=YYYY-MM-DD&contribution_date_end=YYYY-MM-DD` — Contribution-date filter (Ladder; max range: 365 days)
 - `?include_inactive=1` — Include inactive contributors (Overview, Ladder)
 
+## Configuration
+
+Event types and ladders are defined in [wp-content/plugins/wporg-cd/config.php](wp-content/plugins/wporg-cd/config.php) — a plain PHP array returned from the file. Edit it to add, rename, or remove entries; ladders are evaluated in declaration order. Regenerate profiles from the **Profiles** admin page after changing ladders.
+
 ## Admin Interface
 
 - **Contributors** — Link to public dashboard
-- **Event Types** — Define event types (CRUD, JSON import/export)
-- **Ladders** — Define progression ladders with requirements
 - **Profiles** — Start/stop profile generation, view stats
 - **Import** — CSV import, clear events
 
