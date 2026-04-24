@@ -27,8 +27,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/profiles/compute.php';
 require_once plugin_dir_path(__FILE__) . 'includes/profiles/filters.php';
 
 // Admin
-require_once plugin_dir_path(__FILE__) . 'admin/import.php';
-require_once plugin_dir_path(__FILE__) . 'admin/profiles.php';
+require_once plugin_dir_path(__FILE__) . 'admin/dashboard.php';
 
 // Frontend
 require_once plugin_dir_path(__FILE__) . 'frontend/dashboard.php';
@@ -45,18 +44,3 @@ function wporgcd_activate_plugin() {
     wporgcd_create_profile_queue_table();
 }
 
-// Admin Menu
-add_action('admin_menu', 'wporgcd_admin_menu');
-
-function wporgcd_admin_menu() {
-    add_menu_page('Contributors', 'Contributors', 'manage_options', 'contributor-dashboard', 'wporgcd_render_admin_dashboard', 'dashicons-groups', 30);
-}
-
-function wporgcd_render_admin_dashboard() {
-    ?>
-    <div class="wrap">
-        <h1>WordPress Contributor Dashboard</h1>
-        <p><a href="<?php echo esc_url( home_url() ); ?>" class="button button-primary" target="_blank">View Dashboard →</a></p>
-    </div>
-    <?php
-}

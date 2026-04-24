@@ -120,13 +120,11 @@ Current filters per view:
 
 ## Configuration
 
-Event types and ladders are defined in [wp-content/plugins/wporg-cd/config.php](wp-content/plugins/wporg-cd/config.php) — a plain PHP array returned from the file. Edit it to add, rename, or remove entries; ladders are evaluated in declaration order. Regenerate profiles from the **Profiles** admin page after changing ladders.
+Event types and ladders are defined in [wp-content/plugins/wporg-cd/config.php](wp-content/plugins/wporg-cd/config.php) — a plain PHP array returned from the file. Edit it to add, rename, or remove entries; ladders are evaluated in declaration order. Regenerate profiles from the **Contributors** admin page after changing ladders.
 
 ## Admin Interface
 
-- **Contributors** — Link to public dashboard
-- **Profiles** — Start/stop profile generation, view stats
-- **Import** — CSV import, clear events
+- **Contributors** — Profile generation, recent events (last 30 days), link to public dashboard
 
 ## REST API
 
@@ -162,24 +160,12 @@ Requires `manage_options` capability. Max 5,000 events per request.
 }
 ```
 
-## CSV Import Format
-
-```csv
-ID,user_id,user_registered,event_type,date_recorded
-unique-id-123,username,2024-01-15,support_reply,2024-06-20
-```
-
-- Batch size: 2,000 rows
-- Header row auto-detected
-- Uses INSERT IGNORE for deduplication
-- Files stored in `wp-content/uploads/wpcd-imports/`
-
 ## Hooks
 
 | Hook | Type | Purpose |
 |------|------|---------|
 | `wporgcd_profiles_generated` | Action | Fires after profile generation completes; invalidates the admin profile-stats transient |
-| `wporgcd_process_queue` | Action | Process queue work (priority 10: import, 20: profiles) |
+| `wporgcd_process_queue` | Action | Process queue work (used by profile generation) |
 | `wporgcd_has_pending_work` | Filter | Report pending work for heartbeat |
 
 ## Queue System
