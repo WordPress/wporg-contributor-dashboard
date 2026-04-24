@@ -33,6 +33,9 @@ require_once plugin_dir_path(__FILE__) . 'admin/profiles.php';
 
 // Frontend
 require_once plugin_dir_path(__FILE__) . 'frontend/dashboard.php';
+require_once plugin_dir_path(__FILE__) . 'frontend/views/overview.php';
+require_once plugin_dir_path(__FILE__) . 'frontend/views/ladder.php';
+require_once plugin_dir_path(__FILE__) . 'frontend/views/cohorts.php';
 
 // Activation
 register_activation_hook(__FILE__, 'wporgcd_activate_plugin');
