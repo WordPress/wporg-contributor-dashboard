@@ -154,52 +154,6 @@ function wporgcd_render_overview_view($filters) {
 
     $avg_events        = $total_contributors > 0 ? $total_events / $total_contributors : 0;
     $avg_time_to_first = $time_to_first_count > 0 ? $time_to_first_total / $time_to_first_count : null;
-
-    // Year-over-year comparison: contributors who registered AND made their
-    // first contribution within the same 90-day window. Uses a derived table
-    // against events directly; ignores the user's filters by design.
-    $reference_start = wporgcd_get_reference_start_date();
-    $has_yoy_data    = strtotime($reference_end) - strtotime($reference_start) > (365 + 90) * 86400;
-
-    $new_contributors_90d          = 0;
-    $new_contributors_90d_lastyear = 0;
-
-    if ( $has_yoy_data ) {
-        // Helper returns SQL with values already bound; safe to inline because
-        // event_type slugs are restricted to sanitize_key() output (no '%').
-        $type_filter = wporgcd_get_event_type_filter_sql();
-
-        $ninety_days_ago = gmdate('Y-m-d', strtotime($reference_end . ' -90 days'));
-        $new_contributors_90d = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM (
-                SELECT contributor_id
-                FROM $events_table
-                WHERE $type_filter
-                  AND contributor_created_date >= %s
-                  AND contributor_created_date <= %s
-                GROUP BY contributor_id
-                HAVING MIN(event_created_date) >= %s
-                   AND MIN(event_created_date) <= %s
-            ) yoy",
-            $ninety_days_ago, $reference_end, $ninety_days_ago, $reference_end
-        ) );
-
-        $last_year_end   = gmdate('Y-m-d', strtotime($reference_end . ' -1 year'));
-        $last_year_start = gmdate('Y-m-d', strtotime($last_year_end . ' -90 days'));
-        $new_contributors_90d_lastyear = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM (
-                SELECT contributor_id
-                FROM $events_table
-                WHERE $type_filter
-                  AND contributor_created_date >= %s
-                  AND contributor_created_date <= %s
-                GROUP BY contributor_id
-                HAVING MIN(event_created_date) >= %s
-                   AND MIN(event_created_date) <= %s
-            ) yoy",
-            $last_year_start, $last_year_end, $last_year_start, $last_year_end
-        ) );
-    }
     // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 
     ob_start();
@@ -219,7 +173,6 @@ function wporgcd_render_overview_view($filters) {
                     <li>Track contributions across event types</li>
                     <li>Visualize progression through contributor ladders</li>
                     <li>Identify active, at-risk, and inactive contributors</li>
-                    <li>Compare year-over-year trends</li>
                 </ul>
                 <p><a href="https://make.wordpress.org/handbook/contributor-dashboard/" target="_blank">Learn more in the handbook &rarr;</a></p>
             </div>
@@ -272,17 +225,6 @@ function wporgcd_render_overview_view($filters) {
             <div class="insight">
                 <span><strong><?php echo number_format($new_contributors_30d); ?></strong> new contributors in the last 30 days.</span>
                 <span class="info-icon">i<span class="info-tip">Contributors whose first recorded activity was within the last 30 days of the data period.</span></span>
-            </div>
-            <?php endif; ?>
-            <?php if ($new_contributors_90d_lastyear > 0):
-                $yoy_change = $new_contributors_90d - $new_contributors_90d_lastyear;
-                $yoy_pct = round(($yoy_change / $new_contributors_90d_lastyear) * 100);
-                $yoy_color = $yoy_change >= 0 ? 'var(--green)' : 'var(--red)';
-                $yoy_arrow = $yoy_change >= 0 ? '&uarr;' : '&darr;';
-            ?>
-            <div class="insight">
-                <span><span style="color: <?php echo esc_attr( $yoy_color ); ?>"><?php echo $yoy_arrow; ?> <?php echo esc_html( abs( $yoy_pct ) ); ?>%</span> new contributors vs last year (last 90 days).</span>
-                <span class="info-icon">i<span class="info-tip">Compares users who registered AND made their first contribution within each 90-day period. This ensures a fair comparison by giving both periods the same &ldquo;window of opportunity&rdquo; to contribute.</span></span>
             </div>
             <?php endif; ?>
         </div>

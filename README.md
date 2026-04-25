@@ -60,7 +60,6 @@ This ensures that if you import December events in January, the status calculati
 - Total contributions, contributor count, average per contributor
 - One-time contributor count and drop-off risk analysis
 - Ladder funnel with active/warning counts and average days per step
-- Year-over-year comparison (last 90 days vs same period last year)
 - First contribution type distribution
 - Insights: avg time to first contribution, active %, 10+ contributors, new contributors
 

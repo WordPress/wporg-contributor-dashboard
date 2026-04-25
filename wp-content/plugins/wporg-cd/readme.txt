@@ -25,7 +25,6 @@ The ladder is behavior-based and describes patterns of participation over time. 
 * Import contributor events via REST API
 * Configure event types and progression ladders in PHP
 * Automatic status tracking (active/warning/inactive)
-* Year-over-year comparisons and insights
 * Ladder funnel visualization
 
 = Architecture =

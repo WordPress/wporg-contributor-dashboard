@@ -38,9 +38,9 @@ function wporgcd_create_events_table() {
 /**
  * Run schema migrations when WPORGCD_DB_VERSION advances past the stored option.
  *
- * dbDelta() can add new columns and keys but never drops existing ones, so any
- * cleanup of removed indexes has to be issued explicitly here. The function is
- * idempotent: re-running it after a successful migration is a no-op.
+ * dbDelta() is unreliable for adding multi-column indexes (silently no-ops in
+ * many WP/MySQL combinations), so all index changes are issued explicitly here
+ * via ALTER TABLE, guarded by information_schema lookups for idempotency.
  */
 function wporgcd_maybe_run_db_migrations() {
     if ( ! defined( 'WPORGCD_DB_VERSION' ) ) {
@@ -57,23 +57,44 @@ function wporgcd_maybe_run_db_migrations() {
     global $wpdb;
     $table_name = wporgcd_get_table( 'events' );
 
-    // Drop the legacy single-column contributor_id index now that the leftmost
-    // prefix of idx_contributor_type_date covers the same access pattern. The
-    // SHOW INDEX guard makes this safe to re-run on installs that never had the
-    // index in the first place.
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe from wporgcd_get_table()
-    $has_legacy_index = $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(*) FROM information_schema.statistics
-         WHERE table_schema = DATABASE()
-           AND table_name = %s
-           AND index_name = 'contributor_id'",
-        $table_name
-    ) );
-
-    if ( (int) $has_legacy_index > 0 ) {
+    // Drop the legacy single-column contributor_id index: the leftmost prefix
+    // of idx_contributor_type_date already covers the same access pattern.
+    if ( wporgcd_index_exists( $table_name, 'contributor_id' ) ) {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe from wporgcd_get_table()
         $wpdb->query( "ALTER TABLE $table_name DROP INDEX contributor_id" );
     }
 
+    // Add the covering composite for the registration-date GROUP BY workload.
+    // Done explicitly because dbDelta sometimes fails to add multi-column keys.
+    if ( ! wporgcd_index_exists( $table_name, 'idx_regdate_contributor_type_eventdate' ) ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe from wporgcd_get_table()
+        $wpdb->query(
+            "ALTER TABLE $table_name
+             ADD KEY idx_regdate_contributor_type_eventdate
+                 (contributor_created_date, contributor_id, event_type, event_created_date)"
+        );
+    }
+
     update_option( 'wporgcd_db_version', WPORGCD_DB_VERSION, false );
+}
+
+/**
+ * Check whether an index exists on a table in the current database.
+ *
+ * @param string $table_name Full table name (already prefixed).
+ * @param string $index_name Index identifier.
+ * @return bool
+ */
+function wporgcd_index_exists( $table_name, $index_name ) {
+    global $wpdb;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- information_schema lookup, no caching needed
+    $found = $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM information_schema.statistics
+         WHERE table_schema = DATABASE()
+           AND table_name = %s
+           AND index_name = %s",
+        $table_name,
+        $index_name
+    ) );
+    return (int) $found > 0;
 }
