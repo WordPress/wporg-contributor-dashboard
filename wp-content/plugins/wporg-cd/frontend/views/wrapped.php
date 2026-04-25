@@ -315,14 +315,14 @@ function wporgcd_render_wrapped_view($filters) {
 
     <section class="story-section">
         <div class="story-text">
-            <h2>Who showed up</h2>
-            <p>New faces, returning regulars &mdash; the size of the active community shifts month to month. This is unique contributors per month.</p>
+            <h2>Unique contributors per month</h2>
+            <p>How many distinct people contributed each month. New faces and returning regulars all count &mdash; but only once per month, no matter how many contributions they made.</p>
         </div>
         <div class="story-visual">
             <?php
             $max_ctr = max($monthly_contributors);
             ?>
-            <div class="mini-chart" role="list" aria-label="Contributors by month">
+            <div class="mini-chart" role="list" aria-label="Unique contributors per month">
                 <?php foreach ($month_keys as $mkey):
                     $val = $monthly_contributors[$mkey] ?? 0;
                     $pct = $max_ctr > 0 ? round(($val / $max_ctr) * 100) : 0;
