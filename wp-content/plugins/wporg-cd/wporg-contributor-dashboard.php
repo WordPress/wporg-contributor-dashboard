@@ -10,6 +10,11 @@
 
 if (!defined('ABSPATH')) exit;
 
+// Bumped whenever the events table schema changes. Compared on plugins_loaded
+// against the wporgcd_db_version option so existing installs pick up new keys
+// (and drop removed ones) without needing a deactivate/reactivate cycle.
+define('WPORGCD_DB_VERSION', '1.1.0');
+
 // Shared
 require_once plugin_dir_path(__FILE__) . 'includes/database.php';
 require_once plugin_dir_path(__FILE__) . 'config.php';
@@ -34,5 +39,9 @@ register_activation_hook(__FILE__, 'wporgcd_activate_plugin');
 
 function wporgcd_activate_plugin() {
     wporgcd_create_events_table();
+    update_option('wporgcd_db_version', WPORGCD_DB_VERSION, false);
 }
+
+// Run schema migrations on every load (cheap when already up-to-date).
+add_action('plugins_loaded', 'wporgcd_maybe_run_db_migrations');
 

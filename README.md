@@ -108,6 +108,14 @@ Current filters per view:
 
 Event types and ladders are defined in [wp-content/plugins/wporg-cd/config.php](wp-content/plugins/wporg-cd/config.php) — plain PHP arrays returned from helper functions. Edit it to add, rename, or remove entries; ladders are evaluated in declaration order. Changes take effect on the next page load.
 
+### Excluding event types from analytics
+
+`wporgcd_get_excluded_event_types()` returns a list of slugs that should be treated as noise. Listed types are still imported and stored in the events table, but every analytics view filters them out via `wporgcd_get_event_type_filter_sql()`. The default is `[ 'updated_profile' ]` (auto-generated on every login, would otherwise distort engagement stats).
+
+The helper compiles to an `event_type IN (...)` SQL fragment — a positive predicate that can use B-tree indexes, unlike the negated forms (`!=`, `NOT IN`) it replaces.
+
+**Behavioral note for unknown event types:** because the helper builds an allow-list from `wporgcd_get_event_types()` minus the exclusion list, events whose `event_type` slug is **not** registered in `wporgcd_get_event_types()` will not appear in analytics views. To make a new event type count in views, register it in `wporgcd_get_event_types()`; to register but treat as noise, also add it to `wporgcd_get_excluded_event_types()`.
+
 ## Admin Interface
 
 - **Contributors** — Recent events (last 30 days), link to public dashboard

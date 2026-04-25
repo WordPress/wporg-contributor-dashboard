@@ -28,9 +28,10 @@ function wporgcd_render_overview_view($filters) {
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
     // $events_table comes from wporgcd_get_table() (internal whitelist) and every
     // dynamic value is bound via $wpdb->prepare() before being interpolated.
-    // The 'updated_profile' event type is treated as noise (auto-generated on
-    // login) and excluded everywhere it would otherwise distort engagement stats.
-    $where = array("event_type != 'updated_profile'");
+    // The event_type filter is sourced from wporgcd_get_event_type_filter_sql()
+    // so the noise list (e.g. updated_profile) lives in config.php instead of
+    // being hardcoded across views.
+    $where = array(wporgcd_get_event_type_filter_sql());
     if ($date_start !== null) {
         $where[] = $wpdb->prepare('contributor_created_date >= %s', $date_start);
     }
@@ -164,12 +165,16 @@ function wporgcd_render_overview_view($filters) {
     $new_contributors_90d_lastyear = 0;
 
     if ( $has_yoy_data ) {
+        // Helper returns SQL with values already bound; safe to inline because
+        // event_type slugs are restricted to sanitize_key() output (no '%').
+        $type_filter = wporgcd_get_event_type_filter_sql();
+
         $ninety_days_ago = gmdate('Y-m-d', strtotime($reference_end . ' -90 days'));
         $new_contributors_90d = (int) $wpdb->get_var( $wpdb->prepare(
             "SELECT COUNT(*) FROM (
                 SELECT contributor_id
                 FROM $events_table
-                WHERE event_type != 'updated_profile'
+                WHERE $type_filter
                   AND contributor_created_date >= %s
                   AND contributor_created_date <= %s
                 GROUP BY contributor_id
@@ -185,7 +190,7 @@ function wporgcd_render_overview_view($filters) {
             "SELECT COUNT(*) FROM (
                 SELECT contributor_id
                 FROM $events_table
-                WHERE event_type != 'updated_profile'
+                WHERE $type_filter
                   AND contributor_created_date >= %s
                   AND contributor_created_date <= %s
                 GROUP BY contributor_id

@@ -31,7 +31,8 @@ function wporgcd_render_ladder_view($filters) {
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
     // $events_table comes from wporgcd_get_table() (internal whitelist) and every
     // dynamic value is bound via $wpdb->prepare() before being interpolated.
-    $where = array("event_type != 'updated_profile'");
+    // Event-type filter (excluded slugs come from wporgcd_get_excluded_event_types()).
+    $where = array(wporgcd_get_event_type_filter_sql());
     if ($contrib_start !== null) {
         $where[] = $wpdb->prepare('event_created_date >= %s', $contrib_start);
     }

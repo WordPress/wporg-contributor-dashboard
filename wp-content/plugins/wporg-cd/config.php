@@ -59,6 +59,56 @@ function wporgcd_get_event_types() {
 }
 
 /**
+ * Get event types that should be ignored by analytics views.
+ *
+ * Listed types are still imported and stored, but every analytics query built
+ * via wporgcd_get_event_type_filter_sql() filters them out. Use this for noise
+ * (e.g. auto-generated profile updates on login) that would otherwise distort
+ * engagement stats.
+ *
+ * @return array List of event_type slugs to exclude from views.
+ */
+function wporgcd_get_excluded_event_types() {
+    return [
+        'updated_profile',
+    ];
+}
+
+/**
+ * Build an event_type WHERE fragment for use in analytics queries.
+ *
+ * Returns a prepared SQL snippet of the form `event_type IN (%s, %s, ...)`
+ * built from the registered event types in wporgcd_get_event_types() minus the
+ * slugs in wporgcd_get_excluded_event_types(). Designed to be appended directly
+ * into a WHERE clause without further preparation.
+ *
+ * Index-friendly by construction: positive `IN (...)` predicates can use B-tree
+ * indexes leading with event_type, while negated forms (`!=`, `NOT IN`) cannot.
+ *
+ * Returns `1=0` if every registered type happens to be excluded, so the caller
+ * still produces a valid WHERE clause (and yields zero rows, matching intent).
+ *
+ * @return string Prepared SQL fragment, e.g. "event_type IN ('a','b','c')".
+ */
+function wporgcd_get_event_type_filter_sql() {
+    global $wpdb;
+
+    $allowed = array_values( array_diff(
+        array_keys( wporgcd_get_event_types() ),
+        wporgcd_get_excluded_event_types()
+    ) );
+
+    if ( empty( $allowed ) ) {
+        return '1=0';
+    }
+
+    $placeholders = implode( ',', array_fill( 0, count( $allowed ), '%s' ) );
+
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is built from a fixed-size array of '%s' tokens
+    return $wpdb->prepare( "event_type IN ($placeholders)", $allowed );
+}
+
+/**
  * Get configured ladders.
  *
  * @return array Ladders keyed by ID, in evaluation order.
