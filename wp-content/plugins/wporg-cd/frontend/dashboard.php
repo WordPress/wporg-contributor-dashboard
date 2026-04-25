@@ -480,6 +480,8 @@ section { margin-bottom: 32px; }
 .bar { height: 100%; background: var(--blue); border-radius: 3px; }
 .funnel { display: flex; flex-direction: column; gap: 8px; }
 .funnel-row { display: flex; align-items: center; gap: 12px; }
+.funnel-row-total { padding-bottom: 14px; margin-bottom: 6px; border-bottom: 1px solid var(--border); }
+.funnel-row-total .funnel-lbl { font-weight: 600; }
 .funnel-lbl { font-size: 14px; font-weight: 500; text-align: right; }
 .funnel-lbl-wrap { width: 120px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
 .funnel-bar-wrap { flex: 1; height: 32px; display: flex; justify-content: center; }

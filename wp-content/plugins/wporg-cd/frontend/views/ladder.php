@@ -109,6 +109,28 @@ function wporgcd_render_ladder_view($filters) {
 
     $total_contributors = array_sum(array_column($ladder_stats, 'count'));
 
+    // Aggregate active/at-risk counts across every stage (including 'none')
+    // for the "All users" summary row at the top of the funnel.
+    $all_active  = 0;
+    $all_warning = 0;
+    foreach ($ladder_stats as $s) {
+        $all_active  += isset($s['active_count'])  ? $s['active_count']  : 0;
+        $all_warning += isset($s['warning_count']) ? $s['warning_count'] : 0;
+    }
+
+    // Square-root scaling anchored to the total. With a flat 15% minimum
+    // (the previous approach), small steps were visually clamped together
+    // and lost their relative ordering; sqrt keeps tiny steps readable
+    // without flattening real differences. The "All users" total is always
+    // the largest bucket, so it anchors the 100% bar.
+    $sqrt_max = $total_contributors > 0 ? sqrt($total_contributors) : 1;
+    $bar_width = function ($cnt) use ($sqrt_max) {
+        if ($cnt <= 0) {
+            return 0;
+        }
+        return max(3, (int) round((sqrt($cnt) / $sqrt_max) * 100));
+    };
+
     ob_start();
     ?>
     <?php if (empty($ladders)): ?>
@@ -126,14 +148,27 @@ function wporgcd_render_ladder_view($filters) {
         <div class="card">
             <h2>Contributor Progression</h2>
             <div class="funnel">
+                <div class="funnel-row funnel-row-total">
+                    <div class="funnel-lbl-wrap">
+                        <span class="funnel-lbl">All users</span>
+                        <span class="info-icon">i<span class="info-tip">All contributors matching the current filters, regardless of ladder stage.</span></span>
+                    </div>
+                    <div class="funnel-bar-wrap">
+                        <div class="funnel-bar" style="width: 100%;"><?php echo esc_html( number_format( $total_contributors ) ); ?></div>
+                    </div>
+                    <div class="funnel-info">
+                        <span class="active"><?php echo esc_html( $all_active ); ?> active</span>
+                        <?php if ( $all_warning > 0 ) : ?><span class="risk"><?php echo esc_html( $all_warning ); ?> at risk</span><?php endif; ?>
+                    </div>
+                </div>
+
                 <?php
                 $lids = array_keys($ladders);
                 foreach ($lids as $i => $lid):
                     $l = $ladders[$lid];
                     $s = $ladder_stats[$lid] ?? array('count' => 0, 'active_count' => 0, 'warning_count' => 0);
                     $cnt = $s['count'];
-                    $pct = $total_contributors > 0 ? round(($cnt / $total_contributors) * 100) : 0;
-                    $w = max(15, $pct);
+                    $w = $bar_width($cnt);
                 ?>
                 <div class="funnel-row">
                     <div class="funnel-lbl-wrap">
@@ -164,16 +199,6 @@ function wporgcd_render_ladder_view($filters) {
                 <div class="funnel-arrow">&darr; <?php echo esc_html( $conv ); ?>% progress</div>
                 <?php endif; ?>
                 <?php endforeach; ?>
-
-                <?php if (($ladder_stats['none']['count'] ?? 0) > 0): ?>
-                <div class="funnel-row" style="margin-top: 20px; opacity: 0.6;">
-                    <span class="funnel-lbl" style="font-style: italic;">No Ladder</span>
-                    <div class="funnel-bar-wrap">
-                        <div class="funnel-bar" style="width: <?php echo esc_attr( max( 15, round( ( $ladder_stats['none']['count'] / max( 1, $total_contributors ) ) * 100 ) ) ); ?>%; background: var(--light);"><?php echo esc_html( number_format( $ladder_stats['none']['count'] ) ); ?></div>
-                    </div>
-                    <div class="funnel-info"><span style="font-style: italic;">Haven&rsquo;t met requirements</span></div>
-                </div>
-                <?php endif; ?>
             </div>
         </div>
     </section>
