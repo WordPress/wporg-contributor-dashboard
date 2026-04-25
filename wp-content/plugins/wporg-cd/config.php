@@ -1,19 +1,21 @@
 <?php
 /**
- * Plugin configuration: event types and ladders.
+ * Plugin configuration: event types, ladders, and shared status thresholds.
  *
  * Single source of truth for the event-type registry and the ladder
  * progression. Both functions return plain arrays in declaration order;
- * ladders are evaluated top-to-bottom.
- *
- * Edit the arrays below to add, rename, or remove entries. After changing
- * ladders, regenerate profiles from the Profiles admin page so the journey
- * reflects the new definitions.
+ * ladders are evaluated top-to-bottom. Edit the arrays below to add, rename,
+ * or remove entries — changes take effect on the next page load since views
+ * compute ladder placement live from the events table.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+// Activity-status thresholds (in days) shared across views.
+define( 'WPORGCD_STATUS_ACTIVE_DAYS', 30 );
+define( 'WPORGCD_STATUS_WARNING_DAYS', 90 );
 
 /**
  * Get configured event types.
@@ -105,4 +107,34 @@ function wporgcd_get_ladders() {
             ],
         ],
     ];
+}
+
+/**
+ * Check if ladder requirements are met.
+ *
+ * Returns the first matched requirement (any-of semantics) or false.
+ *
+ * @param array $ladder Ladder configuration (with a `requirements` array).
+ * @param array $counts Event counts keyed by event_type.
+ * @return array|false  The met requirement (with `event_type`, `min`, `achieved`) or false.
+ */
+function wporgcd_check_ladder_requirements( $ladder, $counts ) {
+    if ( empty( $ladder['requirements'] ) ) {
+        return false;
+    }
+
+    foreach ( $ladder['requirements'] as $req ) {
+        $event_type = $req['event_type'];
+        $min        = $req['min'];
+
+        if ( isset( $counts[ $event_type ] ) && $counts[ $event_type ] >= $min ) {
+            return array(
+                'event_type' => $event_type,
+                'min'        => $min,
+                'achieved'   => $counts[ $event_type ],
+            );
+        }
+    }
+
+    return false;
 }

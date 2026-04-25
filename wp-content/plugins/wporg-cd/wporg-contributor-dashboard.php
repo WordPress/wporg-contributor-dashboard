@@ -13,18 +13,12 @@ if (!defined('ABSPATH')) exit;
 // Shared
 require_once plugin_dir_path(__FILE__) . 'includes/database.php';
 require_once plugin_dir_path(__FILE__) . 'config.php';
-require_once plugin_dir_path(__FILE__) . 'includes/queue.php';
 
 // Events
 require_once plugin_dir_path(__FILE__) . 'includes/events/schema.php';
 require_once plugin_dir_path(__FILE__) . 'includes/events/import.php';
 require_once plugin_dir_path(__FILE__) . 'includes/events/reference.php';
 require_once plugin_dir_path(__FILE__) . 'includes/events/rest-api.php';
-
-// Profiles
-require_once plugin_dir_path(__FILE__) . 'includes/profiles/schema.php';
-require_once plugin_dir_path(__FILE__) . 'includes/profiles/compute.php';
-require_once plugin_dir_path(__FILE__) . 'includes/profiles/filters.php';
 
 // Admin
 require_once plugin_dir_path(__FILE__) . 'admin/dashboard.php';
@@ -40,7 +34,5 @@ register_activation_hook(__FILE__, 'wporgcd_activate_plugin');
 
 function wporgcd_activate_plugin() {
     wporgcd_create_events_table();
-    wporgcd_create_profiles_table();
-    wporgcd_create_profile_queue_table();
 }
 

@@ -25,8 +25,10 @@ function wporgcd_get_reference_start_date() {
 
 /**
  * Set the reference dates from the events table.
- * Call this at the start of profile generation.
- * Start date is set to 5 years before the end date to exclude unreliable older data.
+ *
+ * Called after each successful event import (see wporgcd_bulk_insert_events())
+ * so reference dates always reflect the newest data. Start date is set to 5
+ * years before the end date to exclude unreliable older data.
  */
 function wporgcd_set_reference_date_from_events() {
     global $wpdb;

@@ -197,6 +197,12 @@ function wporgcd_bulk_insert_events( $events, $batch_size = 500 ) {
 		}
 	}
 
+	// Keep the reference date anchored to the newest known event whenever new
+	// data arrives. All time-windowed views read from this option.
+	if ( $results['imported'] > 0 ) {
+		wporgcd_set_reference_date_from_events();
+	}
+
 	return $results;
 }
 

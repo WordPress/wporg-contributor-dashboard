@@ -180,40 +180,6 @@ function wporgcd_resolve_filters($view_key) {
 }
 
 /**
- * Convert resolved filter values into options for wporgcd_build_profile_filters.
- *
- * Only maps date_range filters whose column exists on the profiles table
- * (currently just `registered_date`) and the `include_inactive` checkbox.
- * Filters targeting other tables (e.g. `event_created_date` on the events table)
- * are skipped so the layout's profiles-based footer count stays well-formed.
- *
- * @param string $view_key View id.
- * @param array  $resolved Output of wporgcd_resolve_filters().
- * @return array Options array accepted by wporgcd_build_profile_filters().
- */
-function wporgcd_filters_to_sql_options($view_key, $resolved) {
-    $views  = wporgcd_get_views();
-    $schema = isset($views[$view_key]['filters']) ? $views[$view_key]['filters'] : array();
-    $opts   = array();
-
-    foreach ($schema as $id => $def) {
-        $column = isset($def['column']) ? $def['column'] : 'registered_date';
-        if ($def['type'] === 'date_range'
-            && $column === 'registered_date'
-            && isset($resolved[$id]['start'], $resolved[$id]['end'])) {
-            $opts['date_start']  = $resolved[$id]['start'];
-            $opts['date_end']    = $resolved[$id]['end'];
-            $opts['date_column'] = 'registered_date';
-        }
-        if ($def['type'] === 'checkbox' && $id === 'include_inactive' && isset($resolved[$id])) {
-            $opts['include_inactive'] = (bool) $resolved[$id];
-        }
-    }
-
-    return $opts;
-}
-
-/**
  * Route the frontend request: resolve view + filters, render, wrap in layout.
  */
 function wporgcd_render_frontend_dashboard() {
@@ -354,26 +320,14 @@ function wporgcd_render_filter_sidebar($view_key, $schema, $resolved) {
  * @return string Full HTML document.
  */
 function wporgcd_render_layout($active_view, $filters, $inner_html) {
-    global $wpdb;
-
     $views      = wporgcd_get_views();
     $view       = isset($views[$active_view]) ? $views[$active_view] : array('title' => 'Dashboard', 'filters' => array());
     $view_title = $view['title'];
     $schema     = isset($view['filters']) ? $view['filters'] : array();
     $has_filters = ! empty($schema);
 
-    // Footer meta: profile count (filter-aware) + data date span.
-    $profiles_table = wporgcd_get_table('profiles');
-    $sql_opts       = wporgcd_filters_to_sql_options($active_view, $filters);
-    $sql_filters    = wporgcd_build_profile_filters($sql_opts);
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $profiles_table + filter clauses are safe
-    $profile_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $profiles_table" . $sql_filters['where'] );
-
     $data_start_date = wporgcd_get_reference_start_date();
     $data_end_date   = wporgcd_get_reference_end_date();
-
-    // Footer: show "(active only)" only if this view has an include_inactive filter and it's off.
-    $active_only_label = ( isset($schema['include_inactive']) && empty($filters['include_inactive']) ) ? ' (active only)' : '';
 
     // Footer: show the first date_range filter range if present.
     $footer_date_label = '';
@@ -654,9 +608,9 @@ section { margin-bottom: 32px; }
 
                 <div class="footer">
                     <div class="footer-meta">
-                        <?php echo esc_html( number_format( $profile_count ) ); ?> profiles<?php echo esc_html( $active_only_label ); ?><?php if ( $footer_date_label !== '' ) : ?> &middot; <?php echo esc_html( $footer_date_label ); ?><?php endif; ?>
+                        <?php if ( $footer_date_label !== '' ) : ?><?php echo esc_html( $footer_date_label ); ?>
                         <br class="mobile-break">
-                        <span class="desktop-sep">&middot;</span> Data: <?php echo esc_html( gmdate( 'M j, Y', strtotime( $data_start_date ) ) ); ?> &ndash; <?php echo esc_html( gmdate( 'M j, Y', strtotime( $data_end_date ) ) ); ?>
+                        <span class="desktop-sep">&middot;</span> <?php endif; ?>Data: <?php echo esc_html( gmdate( 'M j, Y', strtotime( $data_start_date ) ) ); ?> &ndash; <?php echo esc_html( gmdate( 'M j, Y', strtotime( $data_end_date ) ) ); ?>
                     </div>
                     <div class="footer-links">
                         <a href="https://github.com/felipevelzani/wporg-cd" target="_blank">GitHub</a>

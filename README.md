@@ -16,17 +16,15 @@ Uses existing WordPress.org accounts and activity data, does not display persona
 
 ## Architecture
 
-The plugin uses a two-tier data model where profiles are pre-computed from raw events. The dashboard queries the profiles table directly on every request — no HTML caching.
+The plugin uses a single-tier data model: raw events are the source of truth, and every view aggregates them live in PHP on each request. No HTML caching, no precomputed tables.
 
 ```
-Events (raw data)
-    ↓ profile generation
-Profiles (aggregated per-user)
-    ↓ live query on every request
-Dashboard (routed by ?view)
+Events (raw data, immutable)
+    ↓ live aggregation per request
+Dashboard views (routed by ?view)
 ```
 
-### Tier 1: Events
+### Events
 
 Raw activity records stored in `wp_wporgcd_events`. Each event has:
 
@@ -39,21 +37,9 @@ Raw activity records stored in `wp_wporgcd_events`. Each event has:
 
 Events are immutable once imported.
 
-### Tier 2: Profiles
-
-Aggregated data per contributor in `wp_wporgcd_profiles`. Computed from events via heartbeat-based queue:
-
-- Event counts by type
-- Current ladder stage
-- Activity status (active/warning/inactive)
-- Ladder journey history
-- First/last activity dates
-
-Profile generation runs asynchronously. When complete, fires `wporgcd_profiles_generated`.
-
 ### Dashboard
 
-The frontend dashboard is composed of multiple **views** (Overview, Ladder, Cohorts, …) selected via the `?view=` query param. Each view renders its own section of the page live on every request: Overview reads from the `profiles` table, while **Ladder reads directly from the `events` table**, recomputing stage placement against the current ladder definition and active filters on every load (so admin ladder edits take effect immediately without regenerating profiles). A shared layout provides the sidebar navigation, page header, filter bar, and footer.
+The frontend dashboard is composed of multiple **views** (Overview, Ladder, Cohorts, …) selected via the `?view=` query param. Each view renders its own section of the page live on every request, aggregating the `events` table per contributor in PHP on every load — so newly imported events show up immediately and ladder edits in [config.php](wp-content/plugins/wporg-cd/config.php) take effect without any rebuild step. A shared layout provides the sidebar navigation, page header, filter bar, and footer.
 
 ## Status Thresholds
 
@@ -61,11 +47,11 @@ The frontend dashboard is composed of multiple **views** (Overview, Ladder, Coho
 - **Warning** — Last activity 30-90 days ago
 - **Inactive** — No activity for 90+ days
 
-Status is calculated during profile generation relative to the **reference date** (the newest event date), not "today". This handles delayed imports correctly in case we take more time to import new events.
+Status is calculated live by each view, relative to the **reference date** (the newest event date), not "today". This handles delayed imports correctly in case we take more time to import new events.
 
 ## Reference Date
 
-All time-based calculations use `wporgcd_reference_end_date` (stored in wp_options) instead of the current date. This is set automatically from `MAX(event_created_date)` when profile generation starts.
+All time-based calculations use `wporgcd_reference_end_date` (stored in wp_options) instead of the current date. It's refreshed from `MAX(event_created_date)` after each successful event import (see [`includes/events/import.php`](wp-content/plugins/wporg-cd/includes/events/import.php)).
 
 This ensures that if you import December events in January, the status calculations use December as "now", not January.
 
@@ -84,7 +70,7 @@ Views are selected via the `?view=` query param and registered in `wporgcd_get_v
 
 | View | URL | Description | Data source |
 |------|-----|-------------|-------------|
-| Overview | `?view=overview` (default) | Stats grid, key insights, first contribution breakdown | `profiles` |
+| Overview | `?view=overview` (default) | Stats grid, key insights, first contribution breakdown | `events` |
 | Ladder | `?view=ladder` | Contributor progression funnel, live-computed per request | `events` |
 | Cohorts | `?view=cohorts` | Placeholder for cohort analysis | — |
 
@@ -104,11 +90,11 @@ Filters are declared per view in the view registry and rendered in a right-hand 
 - `default_start_offset_days` — when set, the default range **starts** at `reference_end - offset` and spans forward by `default_days` (capped at `reference_end`). Without it, the default range ends at `reference_end` and spans back by `default_days`.
 - `max_days` — maximum allowed range width. Enforced on the resolver (clamping the end date if a wider range is submitted; the filter surfaces a `was_clamped` flag used to render a notice) and via the end input's `max` attribute.
 
-`wporgcd_resolve_filters($view_key)` reads `$_GET`, validates, falls back to defaults, applies `max_days` clamping, and returns a typed array that's passed into the view's render function. `wporgcd_filters_to_sql_options()` then bridges to `wporgcd_build_profile_filters()` for profile-based queries (skipping filters whose `column` isn't on the profiles table — e.g. Ladder's `contribution_date` is ignored there because it targets the events table).
+`wporgcd_resolve_filters($view_key)` reads `$_GET`, validates, falls back to defaults, applies `max_days` clamping, and returns a typed array that's passed into the view's render function. Each view applies the filter values directly to its own `events`-table query — there is no shared SQL filter layer.
 
 Current filters per view:
 
-- **Overview** — `registered_date` (`date_range` on `profiles.registered_date`, default: last 90 days starting one year ago, max 90-day range), `include_inactive` (`checkbox`, default: off).
+- **Overview** — `registered_date` (`date_range` on `events.contributor_created_date`, default: last 90 days starting one year ago, max 90-day range), `include_inactive` (`checkbox`, default: off — applied in PHP after aggregating events per contributor).
 - **Ladder** — `registered_date` (same shape as Overview), `contribution_date` (`date_range` on `events.event_created_date`, default: last 365 days, max 365-day range), `include_inactive`.
 
 ### Query Params
@@ -120,11 +106,11 @@ Current filters per view:
 
 ## Configuration
 
-Event types and ladders are defined in [wp-content/plugins/wporg-cd/config.php](wp-content/plugins/wporg-cd/config.php) — a plain PHP array returned from the file. Edit it to add, rename, or remove entries; ladders are evaluated in declaration order. Regenerate profiles from the **Contributors** admin page after changing ladders.
+Event types and ladders are defined in [wp-content/plugins/wporg-cd/config.php](wp-content/plugins/wporg-cd/config.php) — plain PHP arrays returned from helper functions. Edit it to add, rename, or remove entries; ladders are evaluated in declaration order. Changes take effect on the next page load.
 
 ## Admin Interface
 
-- **Contributors** — Profile generation, recent events (last 30 days), link to public dashboard
+- **Contributors** — Recent events (last 30 days), link to public dashboard
 
 ## REST API
 
@@ -159,21 +145,6 @@ Requires `manage_options` capability. Max 5,000 events per request.
   "errors": []
 }
 ```
-
-## Hooks
-
-| Hook | Type | Purpose |
-|------|------|---------|
-| `wporgcd_profiles_generated` | Action | Fires after profile generation completes; invalidates the admin profile-stats transient |
-| `wporgcd_process_queue` | Action | Process queue work (used by profile generation) |
-| `wporgcd_has_pending_work` | Filter | Report pending work for heartbeat |
-
-## Queue System
-
-The plugin uses a heartbeat-based AJAX queue instead of WP-Cron for more responsive processing:
-- Polls every 2 seconds while admin pages are open
-- Rate-limited to prevent overlapping runs
-- Modules hook via `wporgcd_process_queue` action
 
 ## Get Involved
 
