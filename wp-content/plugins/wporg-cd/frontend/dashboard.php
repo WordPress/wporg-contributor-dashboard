@@ -317,6 +317,69 @@ function wporgcd_render_filter_sidebar($view_key, $schema, $resolved) {
 }
 
 /**
+ * Render a clickable element that opens a modal dialog by id.
+ *
+ * Pairs with wporgcd_render_modal() and the inline click-handler script at
+ * the bottom of wporgcd_render_layout(). The output is a <button> styled to
+ * inherit its surrounding text (no border, no background) so it can drop
+ * into existing inline label contexts (e.g. "11 active" on the ladder
+ * funnel) without visual noise — only a cursor-pointer + hover-underline
+ * affordance.
+ *
+ * @param string $modal_id    Target dialog id (matches the $id passed to wporgcd_render_modal()).
+ * @param string $label       Visible label text. Will be escaped.
+ * @param string $extra_class Optional space-separated extra classes (e.g. 'active', 'risk', 'inactive').
+ * @return string HTML.
+ */
+function wporgcd_render_modal_trigger($modal_id, $label, $extra_class = '') {
+    $classes = 'modal-trigger';
+    if ($extra_class !== '') {
+        $classes .= ' ' . $extra_class;
+    }
+    return sprintf(
+        '<button type="button" class="%s" data-modal-target="%s">%s</button>',
+        esc_attr($classes),
+        esc_attr($modal_id),
+        esc_html($label)
+    );
+}
+
+/**
+ * Render a hidden modal dialog using the native <dialog> element.
+ *
+ * The dialog is opened by clicking any element with
+ * data-modal-target="<this id>" — see the inline click handler at the bottom
+ * of wporgcd_render_layout(). Closes via the close button, the Escape key
+ * (native <dialog> behavior), or a click on the backdrop.
+ *
+ * Caller is responsible for escaping HTML inside $body_html (matching the
+ * existing wporgcd_render_layout() convention for $inner_html).
+ *
+ * @param string $id        Unique element id; targeted by triggers.
+ * @param string $title     Modal title. Will be escaped.
+ * @param string $body_html Pre-escaped modal body HTML.
+ * @return string HTML.
+ */
+function wporgcd_render_modal($id, $title, $body_html) {
+    ob_start();
+    ?>
+    <dialog id="<?php echo esc_attr($id); ?>" class="wporgcd-modal" aria-labelledby="<?php echo esc_attr($id . '-title'); ?>">
+        <div class="modal-header">
+            <h3 id="<?php echo esc_attr($id . '-title'); ?>"><?php echo esc_html($title); ?></h3>
+            <button type="button" class="modal-close" data-modal-close aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <?php
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Caller escapes $body_html
+            echo $body_html;
+            ?>
+        </div>
+    </dialog>
+    <?php
+    return ob_get_clean();
+}
+
+/**
  * Render the shared layout that wraps every view.
  *
  * @param string $active_view Current view id.
@@ -489,6 +552,7 @@ section { margin-bottom: 32px; }
 .funnel-info { display: flex; gap: 12px; font-size: 12px; min-width: 180px; color: var(--light); }
 .funnel-info .active { color: var(--green); }
 .funnel-info .risk { color: #d54e21; }
+.funnel-info .inactive { color: var(--light); }
 .funnel-arrow { text-align: center; color: var(--light); font-size: 12px; padding: 6px 0; margin-left: 132px; }
 .info-icon { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--border); color: var(--muted); font-size: 10px; font-weight: 600; font-style: italic; cursor: help; flex-shrink: 0; }
 .info-icon:hover { background: var(--blue); color: #fff; }
@@ -502,6 +566,39 @@ section { margin-bottom: 32px; }
 .insight { padding: 8px 0; font-size: 14px; color: var(--muted); display: flex; align-items: flex-start; gap: 8px; }
 .insight strong { color: var(--text); }
 .insight .info-icon { margin-top: 2px; }
+
+/* Modal: <button class="modal-trigger" data-modal-target="..."> opens a
+   matching <dialog class="wporgcd-modal" id="...">. The trigger button
+   inherits its surrounding text styling so it can drop in next to inline
+   labels (e.g. "11 active" in the funnel) without visual noise — only a
+   cursor-pointer + hover-underline affordance. Open/close wiring lives in
+   the inline <script> emitted by wporgcd_render_layout(). */
+.modal-trigger { background: none; border: none; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; }
+.modal-trigger:hover { text-decoration: underline; }
+.modal-trigger:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 2px; }
+/* margin: auto restores native <dialog> centering — the universal
+   '* { margin: 0 }' rule above otherwise wipes the UA's margin: auto, and an
+   explicit width (rather than width: 100% + max-width) leaves room for the
+   auto margins to actually center the box. */
+dialog.wporgcd-modal { margin: auto; border: none; border-radius: 12px; padding: 0; width: min(520px, 92vw); background: var(--card); color: var(--text); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18); }
+dialog.wporgcd-modal::backdrop { background: rgba(0, 0, 0, 0.4); }
+dialog.wporgcd-modal .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+dialog.wporgcd-modal .modal-header h3 { font-size: 15px; font-weight: 600; color: var(--text); text-transform: none; letter-spacing: 0; margin: 0; }
+dialog.wporgcd-modal .modal-close { background: none; border: none; font: inherit; font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+dialog.wporgcd-modal .modal-close:hover { background: var(--bg); color: var(--text); }
+dialog.wporgcd-modal .modal-body { padding: 18px 20px 20px; max-height: 60vh; overflow-y: auto; font-size: 14px; line-height: 1.6; }
+dialog.wporgcd-modal .modal-body p { color: var(--muted); margin: 0 0 12px; }
+dialog.wporgcd-modal .modal-body p strong { color: var(--text); }
+.modal-req-list { margin: -4px 0 14px; padding-left: 20px; color: var(--muted); font-size: 13px; list-style: disc; }
+.modal-req-list li { padding: 1px 0; }
+.modal-req-list li strong { color: var(--text); }
+/* Contributor IDs are rendered as pill-style chips so the list reads as
+   "tags" rather than a code block. Flex + gap handles spacing without
+   needing literal commas in the markup. */
+.modal-id-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.modal-id-list a { display: inline-block; padding: 3px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; font-size: 12px; color: var(--text); text-decoration: none; transition: border-color 0.15s, color 0.15s, background 0.15s; }
+.modal-id-list a:hover { border-color: var(--blue); color: var(--blue); background: var(--card); }
+.modal-id-list a:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 .view-placeholder { text-align: center; padding: 48px 24px; }
 .view-placeholder h2 { margin-bottom: 12px; }
@@ -671,6 +768,32 @@ section { margin-bottom: 32px; }
                 echo wporgcd_render_filter_sidebar($active_view, $schema, $filters);
             endif; ?>
         </div>
+        <script>
+        // Modal open/close wiring for wporgcd_render_modal_trigger() +
+        // wporgcd_render_modal(). Single delegated click handler, no
+        // dependencies. ESC-to-close and focus management come from the
+        // native <dialog> element (showModal()).
+        document.addEventListener('click', function (e) {
+            var trigger = e.target.closest('[data-modal-target]');
+            if (trigger) {
+                var dlg = document.getElementById(trigger.getAttribute('data-modal-target'));
+                if (dlg && typeof dlg.showModal === 'function') {
+                    dlg.showModal();
+                }
+                return;
+            }
+            if (e.target.closest('[data-modal-close]')) {
+                var openDlg = e.target.closest('dialog');
+                if (openDlg) { openDlg.close(); }
+                return;
+            }
+            // Click on the dialog element itself (not a descendant) means the
+            // user clicked the backdrop — close the modal.
+            if (e.target.matches('dialog.wporgcd-modal')) {
+                e.target.close();
+            }
+        });
+        </script>
     </body>
     </html>
     <?php
