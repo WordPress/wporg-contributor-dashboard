@@ -24,36 +24,36 @@ define( 'WPORGCD_STATUS_WARNING_DAYS', 90 );
  */
 function wporgcd_get_event_types() {
     return [
-        'forum_reply_create'              => [ 'title' => 'Forum Reply Create' ],
-        'glotpress_translation_approved'  => [ 'title' => 'GlotPress Translation Approved' ],
-        'forum_topic_create'              => [ 'title' => 'Forum Topic Create' ],
-        'updated_profile'                 => [ 'title' => 'Updated Profile' ],
-        'glotpress_translation_suggested' => [ 'title' => 'GlotPress Translation Suggested' ],
-        'learn_course_complete'           => [ 'title' => 'Learn Course Complete' ],
-        'blog_comment_create'             => [ 'title' => 'Blog Comment Create' ],
-        'blog_post_create'                => [ 'title' => 'Blog Post Create' ],
-        'blog_handbook_update'            => [ 'title' => 'Blog Handbook Update' ],
-        'wordcamp_attendee_add'           => [ 'title' => 'WordCamp Attendee Add' ],
-        'glotpress_translation_reviewed'  => [ 'title' => 'GlotPress Translation Reviewed' ],
-        'wordcamp_attendee_checked_in'    => [ 'title' => 'WordCamp Attendee Checked In' ],
-        'wordcamp_organizer_add'          => [ 'title' => 'WordCamp Organizer Add' ],
-        'wordcamp_speaker_add'            => [ 'title' => 'WordCamp Speaker Add' ],
-        'wordcamp_mentor_assign'          => [ 'title' => 'WordCamp Mentor Assign' ],
-        'slack_props_given'               => [ 'title' => 'Slack Props Given' ],
-        'workshop_presenter_assign'       => [ 'title' => 'Workshop Presenter Assign' ],
-        'commit'                          => [ 'title' => 'Commit' ],
-        'review'                          => [ 'title' => 'Review' ],
-        'plugin_review'                   => [ 'title' => 'Plugin Review' ],
-        'activity_update'                 => [ 'title' => 'Activity Update' ],
-        'github_issue_create'             => [ 'title' => 'Github Issue Create' ],
-        'bbp_topic_create'                => [ 'title' => 'Bbp Topic Create' ],
-        'bbp_reply_create'                => [ 'title' => 'Bbp Reply Create' ],
+        'forum_reply_create'              => [ 'title' => 'Forum Reply Posted' ],
+        'glotpress_translation_approved'  => [ 'title' => 'Translation Approved' ],
+        'forum_topic_create'              => [ 'title' => 'Forum Topic Started' ],
+        'updated_profile'                 => [ 'title' => 'Profile Updated' ],
+        'glotpress_translation_suggested' => [ 'title' => 'Translation Suggested' ],
+        'learn_course_complete'           => [ 'title' => 'Course Completed' ],
+        'blog_comment_create'             => [ 'title' => 'Blog Comment Posted' ],
+        'blog_post_create'                => [ 'title' => 'Blog Post Published' ],
+        'blog_handbook_update'            => [ 'title' => 'Handbook Updated' ],
+        'wordcamp_attendee_add'           => [ 'title' => 'Registered for WordCamp' ],
+        'glotpress_translation_reviewed'  => [ 'title' => 'Translation Reviewed' ],
+        'wordcamp_attendee_checked_in'    => [ 'title' => 'Checked In at WordCamp' ],
+        'wordcamp_organizer_add'          => [ 'title' => 'Joined WordCamp as Organizer' ],
+        'wordcamp_speaker_add'            => [ 'title' => 'Spoke at WordCamp' ],
+        'wordcamp_mentor_assign'          => [ 'title' => 'Mentored at WordCamp' ],
+        'slack_props_given'               => [ 'title' => 'Gave Slack Props' ],
+        'workshop_presenter_assign'       => [ 'title' => 'Presented Workshop' ],
+        'commit'                          => [ 'title' => 'Code Committed' ],
+        'review'                          => [ 'title' => 'Code Reviewed' ],
+        'plugin_review'                   => [ 'title' => 'Plugin Reviewed' ],
+        'activity_update'                 => [ 'title' => 'Activity Updated' ],
+        'github_issue_create'             => [ 'title' => 'GitHub Issue Opened' ],
+        'bbp_topic_create'                => [ 'title' => 'bbPress Topic Started' ],
+        'bbp_reply_create'                => [ 'title' => 'bbPress Reply Posted' ],
         'new_blog_comment'                => [ 'title' => 'New Blog Comment' ],
-        'plugin_create'                   => [ 'title' => 'Plugin Create' ],
+        'plugin_create'                   => [ 'title' => 'Plugin Submitted' ],
         'new_blog_post'                   => [ 'title' => 'New Blog Post' ],
-        'bpc_page_edit'                   => [ 'title' => 'Bpc Page Edit' ],
-        'activity_comment'                => [ 'title' => 'Activity Comment' ],
-        'theme_create'                    => [ 'title' => 'Theme Create' ],
+        'bpc_page_edit'                   => [ 'title' => 'BPC Page Edited' ],
+        'activity_comment'                => [ 'title' => 'Activity Comment Added' ],
+        'theme_create'                    => [ 'title' => 'Theme Submitted' ],
         'test_activity'                   => [ 'title' => 'Test Activity' ],
     ];
 }
@@ -115,7 +115,7 @@ function wporgcd_get_event_type_filter_sql() {
  */
 function wporgcd_get_ladders() {
     return [
-        'step0' => [
+        'connect' => [
             'title'        => 'Connect',
             'requirements' => [
                 [ 'event_type' => 'forum_reply_create',              'min' => 1 ],
@@ -136,7 +136,7 @@ function wporgcd_get_ladders() {
                 [ 'event_type' => 'workshop_presenter_assign',       'min' => 1 ],
             ],
         ],
-        'step1' => [
+        'contribute' => [
             'title'        => 'Contribute',
             'requirements' => [
                 [ 'event_type' => 'forum_reply_create',              'min' => 10 ],
@@ -145,7 +145,7 @@ function wporgcd_get_ladders() {
                 [ 'event_type' => 'blog_comment_create',             'min' => 2 ],
             ],
         ],
-        'step2' => [
+        'engage' => [
             'title'        => 'Engage',
             'requirements' => [
                 [ 'event_type' => 'glotpress_translation_approved',  'min' => 5 ],
