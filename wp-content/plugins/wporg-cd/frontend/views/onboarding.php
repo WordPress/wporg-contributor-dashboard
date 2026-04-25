@@ -1,21 +1,23 @@
 <?php
 /**
- * Overview View
+ * Onboarding View
  *
- * High-level contributor stats, key insights, and first-contribution breakdown.
- * The ladder funnel lives in the dedicated Ladder view. Queries the events
- * table directly on every request and rolls up per contributor in PHP.
+ * Registration-cohort metrics: time from account creation to first
+ * contribution, activity status, one-time contributors, and the breakdown of
+ * which event types onboard contributors. Filters by contributor_created_date
+ * so each insight reflects contributors who registered in the selected window,
+ * not just contributors who happened to be active in it.
  */
 
 if (!defined('ABSPATH')) exit;
 
 /**
- * Render the overview view.
+ * Render the onboarding view.
  *
  * @param array $filters Resolved filter values keyed by filter id. See wporgcd_resolve_filters().
  * @return string Rendered inner HTML (no <html>/<head>/layout wrapper).
  */
-function wporgcd_render_overview_view($filters) {
+function wporgcd_render_onboarding_view($filters) {
     global $wpdb;
     $events_table  = wporgcd_get_table('events');
     $event_types   = wporgcd_get_event_types();
@@ -158,33 +160,8 @@ function wporgcd_render_overview_view($filters) {
 
     ob_start();
     ?>
-    <section class="overview-intro">
-        <p class="tagline">Visualize and track WordPress contributor activity across the community.</p>
-        <a class="learn-more" onclick="this.classList.toggle('open');document.getElementById('details-panel').classList.toggle('open');">
-            Learn more
-            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4.5l3 3 3-3"/></svg>
-        </a>
-        <div id="details-panel" class="details-panel">
-            <div class="details-content">
-                <p>This dashboard responds to long-standing community requests for better visibility into contributor journeys&mdash;how people join, participate, and grow across Make teams.</p>
-                <p>The contributor ladder framework maps activity into stages based on behavior patterns over time. It does not rank contributors or imply that some contributions matter more than others.</p>
-                <p>Key features:</p>
-                <ul>
-                    <li>Track contributions across event types</li>
-                    <li>Visualize progression through contributor ladders</li>
-                    <li>Identify active, at-risk, and inactive contributors</li>
-                </ul>
-                <p><a href="https://make.wordpress.org/handbook/contributor-dashboard/" target="_blank">Learn more in the handbook &rarr;</a></p>
-            </div>
-        </div>
-    </section>
-
     <section>
         <div class="grid-4">
-            <div class="card stat">
-                <div class="stat-val blue"><?php echo number_format($total_events); ?></div>
-                <div class="stat-lbl">Total Contributions</div>
-            </div>
             <div class="card stat">
                 <div class="stat-val blue"><?php echo number_format($total_contributors); ?></div>
                 <div class="stat-lbl">Contributors</div>
@@ -198,6 +175,10 @@ function wporgcd_render_overview_view($filters) {
                 <div class="stat-lbl">One-time Contributors</div>
                 <div class="stat-detail"><?php echo esc_html( $total_contributors > 0 ? round( ( $single_event / $total_contributors ) * 100 ) : 0 ); ?>% drop-off risk</div>
             </div>
+            <div class="card stat">
+                <div class="stat-val blue"><?php echo $avg_time_to_first !== null ? esc_html( number_format( round( $avg_time_to_first ) ) ) : '&mdash;'; ?></div>
+                <div class="stat-lbl">Avg Days to First Contribution</div>
+            </div>
         </div>
     </section>
 
@@ -205,12 +186,6 @@ function wporgcd_render_overview_view($filters) {
         <?php if ($total_contributors > 0): ?>
         <div class="card">
             <h3>Key Insights</h3>
-            <?php if ($avg_time_to_first !== null): ?>
-            <div class="insight">
-                <span>Average <strong><?php echo esc_html( round( $avg_time_to_first ) ); ?> days</strong> from account creation to first contribution.</span>
-                <span class="info-icon">i<span class="info-tip">Days between WordPress.org account registration and first recorded contribution.</span></span>
-            </div>
-            <?php endif; ?>
             <div class="insight">
                 <span><strong><?php echo esc_html( $active_contributors ); ?></strong> contributors active (<?php echo esc_html( round( ( $active_contributors / $total_contributors ) * 100 ) ); ?>%).<?php if ( $warning_contributors > 0 ) : ?> <strong><?php echo esc_html( $warning_contributors ); ?></strong> at risk.<?php endif; ?></span>
                 <span class="info-icon">i<span class="info-tip"><strong>Active:</strong> contributed in the last 30 days.<br><strong>At risk:</strong> last activity was 30-90 days ago.</span></span>
@@ -224,14 +199,14 @@ function wporgcd_render_overview_view($filters) {
             <?php if ($new_contributors_30d > 0): ?>
             <div class="insight">
                 <span><strong><?php echo number_format($new_contributors_30d); ?></strong> new contributors in the last 30 days.</span>
-                <span class="info-icon">i<span class="info-tip">Contributors whose first recorded activity was within the last 30 days of the data period.</span></span>
+                <span class="info-icon">i<span class="info-tip">Contributors whose registration date was within the last 30 days of the data period.</span></span>
             </div>
             <?php endif; ?>
         </div>
         <?php endif; ?>
 
         <div class="card">
-            <h3>First User Contribution</h3>
+            <h3>First Contribution Event</h3>
             <?php if (!empty($first_event_counts)):
                 $max_first = reset($first_event_counts); $r = 0;
                 foreach ($first_event_counts as $type => $first_cnt): $r++;

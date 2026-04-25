@@ -39,7 +39,7 @@ Events are immutable once imported.
 
 ### Dashboard
 
-The frontend dashboard is composed of multiple **views** (Overview, Ladder, Cohorts, …) selected via the `?view=` query param. Each view renders its own section of the page live on every request, aggregating the `events` table per contributor in PHP on every load — so newly imported events show up immediately and ladder edits in [config.php](wp-content/plugins/wporg-cd/config.php) take effect without any rebuild step. A shared layout provides the sidebar navigation, page header, filter bar, and footer.
+The frontend dashboard is composed of multiple **views** (Wrapped, Ladder, Onboarding, Cohorts, …) selected via the `?view=` query param. Each view renders its own section of the page live on every request, aggregating the `events` table per contributor in PHP on every load — so newly imported events show up immediately and ladder edits in [config.php](wp-content/plugins/wporg-cd/config.php) take effect without any rebuild step. A shared layout provides the sidebar navigation, page header, filter bar, and footer.
 
 ## Status Thresholds
 
@@ -57,11 +57,9 @@ This ensures that if you import December events in January, the status calculati
 
 ## Dashboard Features
 
-- Total contributions, contributor count, average per contributor
-- One-time contributor count and drop-off risk analysis
-- Ladder funnel with active/warning counts and average days per step
-- First contribution type distribution
-- Insights: avg time to first contribution, active %, 10+ contributors, new contributors
+- **Wrapped** (event-date scoped): a story-style recap of the chosen period — total contributions, contributors, contributions/day, contributions/contributor, monthly contribution and contributor trends, 10+ contributor share, and top event types.
+- **Onboarding** (registration-date scoped): contributors, one-time contributor share with drop-off risk, average days from registration to first contribution, active/at-risk counts, and the breakdown of which event types onboard contributors.
+- **Ladder** funnel with active/warning counts per step.
 
 ### Views
 
@@ -69,9 +67,10 @@ Views are selected via the `?view=` query param and registered in `wporgcd_get_v
 
 | View | URL | Description | Data source |
 |------|-----|-------------|-------------|
-| Overview | `?view=overview` (default) | Stats grid, key insights, first contribution breakdown | `events` |
-| Ladder | `?view=ladder` | Contributor progression funnel, live-computed per request | `events` |
-| Cohorts | `?view=cohorts` | Placeholder for cohort analysis | — |
+| Wrapped | `?view=wrapped` (default) | WordPress.org Wrapped-style story for a chosen period (last 12 months by default, or any fully completed calendar year). Filters by `event_created_date`. No sidebar filter — period selector is in-page via `?period=`. | `events` |
+| Ladder | `?view=ladder` | Contributor progression funnel, live-computed per request. | `events` |
+| Onboarding | `?view=onboarding` | Registration-cohort metrics: avg days to first contribution, active/at-risk, one-time contributors, first contribution event types. | `events` |
+| Cohorts | `?view=cohorts` | Placeholder for cohort analysis. | — |
 
 Add a new view by creating a file under `frontend/views/`, defining a `wporgcd_render_<id>_view($filters)` function, requiring it from the plugin bootstrap, and adding an entry to `wporgcd_get_views()` with an optional `filters` schema.
 
@@ -93,15 +92,17 @@ Filters are declared per view in the view registry and rendered in a right-hand 
 
 Current filters per view:
 
-- **Overview** — `registered_date` (`date_range` on `events.contributor_created_date`, default: last 90 days starting one year ago, max 90-day range), `include_inactive` (`checkbox`, default: off — applied in PHP after aggregating events per contributor).
-- **Ladder** — `registered_date` (same shape as Overview), `contribution_date` (`date_range` on `events.event_created_date`, default: last 365 days, max 365-day range), `include_inactive`.
+- **Wrapped** — no sidebar filter. Period is selected in-page via `?period=` (`last12` default, or a fully completed calendar year like `2024`). Resolution lives in [`wporgcd_resolve_wrapped_period()`](wp-content/plugins/wporg-cd/frontend/views/wrapped.php) and only accepts year values whose Jan 1–Dec 31 fits inside `[reference_start, reference_end]`; anything else falls back to `last12`.
+- **Ladder** — `registered_date` (`date_range` on `events.contributor_created_date`, default last 90 days starting one year ago, max 90), `contribution_date` (`date_range` on `events.event_created_date`, default last 365 days, max 365), `include_inactive`.
+- **Onboarding** — `registered_date` (same shape as Ladder's), `include_inactive` (`checkbox`, default off — applied in PHP after aggregating events per contributor).
 
 ### Query Params
 
-- `?view=<id>` — Select a view (default `overview`)
-- `?registered_date_start=YYYY-MM-DD&registered_date_end=YYYY-MM-DD` — User-registered-date filter (Overview, Ladder; max range: 90 days)
+- `?view=<id>` — Select a view (default `wrapped`)
+- `?period=last12|YYYY` — Wrapped period (default `last12`; `YYYY` only accepted for fully completed calendar years inside the available data range)
+- `?registered_date_start=YYYY-MM-DD&registered_date_end=YYYY-MM-DD` — User-registered-date filter (Onboarding, Ladder; max range: 90 days)
 - `?contribution_date_start=YYYY-MM-DD&contribution_date_end=YYYY-MM-DD` — Contribution-date filter (Ladder; max range: 365 days)
-- `?include_inactive=1` — Include inactive contributors (Overview, Ladder)
+- `?include_inactive=1` — Include inactive contributors (Onboarding, Ladder)
 
 ## Configuration
 

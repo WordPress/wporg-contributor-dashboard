@@ -23,24 +23,10 @@ add_action('template_redirect', 'wporgcd_render_frontend_dashboard');
  */
 function wporgcd_get_views() {
     return array(
-        'overview' => array(
-            'title'   => 'Overview',
-            'render'  => 'wporgcd_render_overview_view',
-            'filters' => array(
-                'registered_date' => array(
-                    'type'                      => 'date_range',
-                    'label'                     => 'User registered date',
-                    'column'                    => 'registered_date',
-                    'default_days'              => 90,
-                    'default_start_offset_days' => 365,
-                    'max_days'                  => 90,
-                ),
-                'include_inactive' => array(
-                    'type'    => 'checkbox',
-                    'label'   => 'Include inactive users',
-                    'default' => false,
-                ),
-            ),
+        'wrapped' => array(
+            'title'   => 'Wrapped',
+            'render'  => 'wporgcd_render_wrapped_view',
+            'filters' => array(),
         ),
         'ladder' => array(
             'title'   => 'Ladder',
@@ -60,6 +46,25 @@ function wporgcd_get_views() {
                     'column'       => 'event_created_date',
                     'default_days' => 365,
                     'max_days'     => 365,
+                ),
+                'include_inactive' => array(
+                    'type'    => 'checkbox',
+                    'label'   => 'Include inactive users',
+                    'default' => false,
+                ),
+            ),
+        ),
+        'onboarding' => array(
+            'title'   => 'Onboarding',
+            'render'  => 'wporgcd_render_onboarding_view',
+            'filters' => array(
+                'registered_date' => array(
+                    'type'                      => 'date_range',
+                    'label'                     => 'User registered date',
+                    'column'                    => 'registered_date',
+                    'default_days'              => 90,
+                    'default_start_offset_days' => 365,
+                    'max_days'                  => 90,
                 ),
                 'include_inactive' => array(
                     'type'    => 'checkbox',
@@ -191,7 +196,7 @@ function wporgcd_render_frontend_dashboard() {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated against whitelist
     $view_key = isset($_GET['view']) && array_key_exists($_GET['view'], $views)
         ? sanitize_key($_GET['view'])
-        : 'overview';
+        : 'wrapped';
 
     $filters    = wporgcd_resolve_filters($view_key);
     $render_fn  = $views[$view_key]['render'];
@@ -329,7 +334,9 @@ function wporgcd_render_layout($active_view, $filters, $inner_html) {
     $data_start_date = wporgcd_get_reference_start_date();
     $data_end_date   = wporgcd_get_reference_end_date();
 
-    // Footer: show the first date_range filter range if present.
+    // Footer: show the first date_range filter range if present, falling back
+    // to the wrapped period selector when active (since wrapped has no
+    // sidebar filter to source the label from).
     $footer_date_label = '';
     foreach ($schema as $id => $def) {
         if ($def['type'] === 'date_range' && isset($filters[$id]['start'], $filters[$id]['end'])) {
@@ -342,6 +349,16 @@ function wporgcd_render_layout($active_view, $filters, $inner_html) {
             break;
         }
     }
+    if ($footer_date_label === '' && $active_view === 'wrapped' && function_exists('wporgcd_get_wrapped_period_label')) {
+        $footer_date_label = wporgcd_get_wrapped_period_label();
+    }
+
+    // The Wrapped view is a story-style recap, so its page header is centered
+    // and uses the full "WordPress.org Wrapped" name (not the sidebar's "Wrapped").
+    // Other views keep the default left-aligned dashboard header.
+    $is_wrapped = $active_view === 'wrapped';
+    $page_header_title = $is_wrapped ? 'WordPress.org Wrapped' : $view_title;
+    $page_header_class = $is_wrapped ? 'page-header centered' : 'page-header';
 
     ob_start();
     ?>
@@ -371,6 +388,7 @@ a { color: inherit; }
 
 .main { flex: 1; min-width: 0; padding: 32px 24px 40px; }
 .page-header { margin-bottom: 28px; }
+.page-header.centered { text-align: center; }
 .page-header h1 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
 
 .filter-sidebar { width: var(--filterbar-w); flex-shrink: 0; background: var(--card); border-left: 1px solid var(--border); position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 20px 16px; }
@@ -392,21 +410,40 @@ a { color: inherit; }
 .filter-reset { color: var(--muted); font-size: 13px; text-decoration: none; padding: 8px 10px; transition: color 0.15s; white-space: nowrap; }
 .filter-reset:hover { color: var(--blue); }
 
-/* Overview intro (tagline + learn-more expander) */
-.overview-intro { margin-bottom: 24px; }
-.overview-intro .tagline { font-size: 14px; color: var(--muted); max-width: 640px; line-height: 1.5; }
-.learn-more { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--blue); text-decoration: none; cursor: pointer; margin-top: 6px; padding: 6px 0; transition: opacity 0.15s; }
-.learn-more:hover { opacity: 0.8; }
-.learn-more svg { width: 12px; height: 12px; transition: transform 0.2s; }
-.learn-more.open svg { transform: rotate(180deg); }
-.details-panel { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.2s; opacity: 0; }
-.details-panel.open { max-height: 500px; opacity: 1; transition: max-height 0.4s ease-in, opacity 0.3s; }
-.details-content { padding: 16px 0 8px; font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 720px; }
-.details-content p { margin-bottom: 12px; }
-.details-content ul { margin: 0 0 12px 20px; }
-.details-content li { margin-bottom: 4px; }
-.details-content a { color: var(--blue); text-decoration: none; }
-.details-content a:hover { text-decoration: underline; }
+/* Wrapped intro (tagline above the period selector) */
+.wrapped-intro { margin-bottom: 20px; }
+.wrapped-intro .tagline { font-size: 14px; color: var(--muted); max-width: 640px; line-height: 1.5; margin: 0 auto; text-align: center; }
+
+/* Wrapped: in-page period selector */
+.period-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 0 36px; }
+.period-btn { display: inline-flex; align-items: center; padding: 8px 16px; border: 1px solid var(--border); border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--text); background: var(--card); text-decoration: none; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+.period-btn:hover { border-color: var(--blue); color: var(--blue); }
+.period-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.period-btn.active:hover { background: var(--blue-hover); color: #fff; }
+
+/* Wrapped: zigzag story sections (parity is scoped to .story-stack
+   so it doesn't shift when sibling elements are added/removed above) */
+.story-stack { display: flex; flex-direction: column; gap: 0; }
+.story-section { display: flex; align-items: center; gap: 32px; margin-bottom: 24px; padding: 32px 28px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+.story-stack .story-section:nth-child(even) { flex-direction: row-reverse; }
+.story-section .story-text { flex: 1; min-width: 0; }
+.story-section .story-text h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 10px; text-transform: none; color: var(--text); }
+.story-section .story-text p { font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 480px; }
+.story-section .story-visual { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+.story-stat { text-align: center; }
+.story-stat-val { font-size: 56px; font-weight: 700; line-height: 1; color: var(--blue); letter-spacing: -0.02em; }
+.story-stat-lbl { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.story-stat-sub { font-size: 13px; color: var(--muted); text-align: center; }
+.story-stat-sub strong { color: var(--text); }
+.story-list { width: 100%; }
+
+/* Wrapped: monthly mini bar chart */
+.mini-chart { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.mini-chart-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.mini-chart-label { width: 64px; flex-shrink: 0; color: var(--muted); }
+.mini-chart-bar-wrap { flex: 1; height: 12px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.mini-chart-bar { height: 100%; background: var(--blue); border-radius: 3px; }
+.mini-chart-value { width: 60px; flex-shrink: 0; text-align: right; color: var(--text); font-weight: 600; }
 
 h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
 h3 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
@@ -529,7 +566,7 @@ section { margin-bottom: 32px; }
   .main { padding: 24px 16px 32px; }
   .grid-4, .grid-2 { grid-template-columns: 1fr; gap: 12px; }
   .page-header h1 { font-size: 22px; }
-  .overview-intro .tagline { font-size: 13px; }
+  .wrapped-intro .tagline { font-size: 13px; }
   .stat-val { font-size: 28px; }
   .stat { padding: 20px 16px; }
   .card { padding: 16px; }
@@ -539,6 +576,13 @@ section { margin-bottom: 32px; }
   .funnel-arrow { margin-left: 112px; font-size: 11px; }
   .filter-sidebar { padding: 16px; }
   .filter-form { max-width: none; }
+  .story-section, .story-stack .story-section:nth-child(even) { flex-direction: column; padding: 24px 18px; gap: 20px; }
+  .story-section .story-text h2 { font-size: 18px; }
+  .story-section .story-text p { max-width: none; }
+  .story-stat-val { font-size: 44px; }
+  .mini-chart-label { width: 52px; }
+  .mini-chart-value { width: 50px; }
+  .period-btn { font-size: 12px; padding: 7px 12px; }
 }
 
 @media (max-width: 576px) {
@@ -565,7 +609,7 @@ section { margin-bottom: 32px; }
 @media (max-width: 480px) {
   .main { padding: 16px 12px 24px; }
   .page-header h1 { font-size: 18px; }
-  .overview-intro .tagline { font-size: 12px; }
+  .wrapped-intro .tagline { font-size: 12px; }
   .stat-val { font-size: 22px; }
   .card { padding: 14px; border-radius: 10px; }
   .item { padding: 8px 0; gap: 8px; }
@@ -597,8 +641,8 @@ section { margin-bottom: 32px; }
                 </nav>
             </aside>
             <main class="main">
-                <div class="page-header">
-                    <h1><?php echo esc_html( $view_title ); ?></h1>
+                <div class="<?php echo esc_attr( $page_header_class ); ?>">
+                    <h1><?php echo esc_html( $page_header_title ); ?></h1>
                 </div>
 
                 <?php

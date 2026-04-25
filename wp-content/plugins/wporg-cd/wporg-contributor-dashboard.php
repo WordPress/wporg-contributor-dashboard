@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) exit;
 // Bumped whenever the events table schema changes. Compared on plugins_loaded
 // against the wporgcd_db_version option so existing installs pick up new keys
 // (and drop removed ones) without needing a deactivate/reactivate cycle.
-define('WPORGCD_DB_VERSION', '1.1.1');
+define('WPORGCD_DB_VERSION', '1.2.0');
 
 // Shared
 require_once plugin_dir_path(__FILE__) . 'includes/database.php';
@@ -30,8 +30,9 @@ require_once plugin_dir_path(__FILE__) . 'admin/dashboard.php';
 
 // Frontend
 require_once plugin_dir_path(__FILE__) . 'frontend/dashboard.php';
-require_once plugin_dir_path(__FILE__) . 'frontend/views/overview.php';
+require_once plugin_dir_path(__FILE__) . 'frontend/views/wrapped.php';
 require_once plugin_dir_path(__FILE__) . 'frontend/views/ladder.php';
+require_once plugin_dir_path(__FILE__) . 'frontend/views/onboarding.php';
 require_once plugin_dir_path(__FILE__) . 'frontend/views/cohorts.php';
 
 // Activation
