@@ -15,6 +15,9 @@ const WPORGCD_RECENT_EVENTS_LIMIT = 50;
 
 add_action( 'admin_menu', 'wporgcd_register_admin_menu' );
 
+/**
+ * Register the top-level "Contributors" admin menu page.
+ */
 function wporgcd_register_admin_menu() {
 	add_menu_page(
 		'Contributors',
@@ -27,6 +30,9 @@ function wporgcd_register_admin_menu() {
 	);
 }
 
+/**
+ * Render the top-level admin page (link to public dashboard + recent events).
+ */
 function wporgcd_render_admin_page() {
 	?>
 	<div class="wrap">
@@ -55,27 +61,33 @@ function wporgcd_render_recent_events_section() {
 	$reference_end = wporgcd_get_reference_end_date();
 	$cutoff        = gmdate( 'Y-m-d H:i:s', strtotime( '-30 days', strtotime( $reference_end ) ) );
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe from wporgcd_get_table()
-	$total = (int) $wpdb->get_var( $wpdb->prepare(
-		"SELECT COUNT(*) FROM $events_table WHERE event_created_date >= %s",
-		$cutoff
-	) );
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe from wporgcd_get_table()
+	$total = (int) $wpdb->get_var(
+		$wpdb->prepare(
+			"SELECT COUNT(*) FROM $events_table WHERE event_created_date >= %s",
+			$cutoff
+		)
+	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 	if ( $total === 0 ) {
 		echo '<div class="notice notice-info inline"><p>No events recorded in the last 30 days.</p></div>';
 		return;
 	}
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe from wporgcd_get_table()
-	$rows = $wpdb->get_results( $wpdb->prepare(
-		"SELECT event_type, contributor_id, event_created_date
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe from wporgcd_get_table()
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT event_type, contributor_id, event_created_date
 		 FROM $events_table
 		 WHERE event_created_date >= %s
 		 ORDER BY event_created_date DESC
 		 LIMIT %d",
-		$cutoff,
-		WPORGCD_RECENT_EVENTS_LIMIT
-	) );
+			$cutoff,
+			WPORGCD_RECENT_EVENTS_LIMIT
+		)
+	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 	$event_types = wporgcd_get_event_types();
 	$shown       = count( $rows );
@@ -93,7 +105,8 @@ function wporgcd_render_recent_events_section() {
 			</tr>
 		</thead>
 		<tbody>
-			<?php foreach ( $rows as $row ) :
+			<?php
+			foreach ( $rows as $row ) :
 				$title = isset( $event_types[ $row->event_type ] ) ? $event_types[ $row->event_type ]['title'] : $row->event_type;
 				?>
 				<tr>

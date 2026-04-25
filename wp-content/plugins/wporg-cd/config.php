@@ -10,7 +10,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 // Activity-status thresholds (in days) shared across views.
@@ -23,39 +23,39 @@ define( 'WPORGCD_STATUS_WARNING_DAYS', 90 );
  * @return array Event types keyed by ID.
  */
 function wporgcd_get_event_types() {
-    return [
-        'forum_reply_create'              => [ 'title' => 'Forum Reply Posted' ],
-        'glotpress_translation_approved'  => [ 'title' => 'Translation Approved' ],
-        'forum_topic_create'              => [ 'title' => 'Forum Topic Started' ],
-        'updated_profile'                 => [ 'title' => 'Profile Updated' ],
-        'glotpress_translation_suggested' => [ 'title' => 'Translation Suggested' ],
-        'learn_course_complete'           => [ 'title' => 'Course Completed' ],
-        'blog_comment_create'             => [ 'title' => 'Blog Comment Posted' ],
-        'blog_post_create'                => [ 'title' => 'Blog Post Published' ],
-        'blog_handbook_update'            => [ 'title' => 'Handbook Updated' ],
-        'wordcamp_attendee_add'           => [ 'title' => 'Registered for WordCamp' ],
-        'glotpress_translation_reviewed'  => [ 'title' => 'Translation Reviewed' ],
-        'wordcamp_attendee_checked_in'    => [ 'title' => 'Checked In at WordCamp' ],
-        'wordcamp_organizer_add'          => [ 'title' => 'Joined WordCamp as Organizer' ],
-        'wordcamp_speaker_add'            => [ 'title' => 'Spoke at WordCamp' ],
-        'wordcamp_mentor_assign'          => [ 'title' => 'Mentored at WordCamp' ],
-        'slack_props_given'               => [ 'title' => 'Gave Slack Props' ],
-        'workshop_presenter_assign'       => [ 'title' => 'Presented Workshop' ],
-        'commit'                          => [ 'title' => 'Code Committed' ],
-        'review'                          => [ 'title' => 'Code Reviewed' ],
-        'plugin_review'                   => [ 'title' => 'Plugin Reviewed' ],
-        'activity_update'                 => [ 'title' => 'Activity Updated' ],
-        'github_issue_create'             => [ 'title' => 'GitHub Issue Opened' ],
-        'bbp_topic_create'                => [ 'title' => 'bbPress Topic Started' ],
-        'bbp_reply_create'                => [ 'title' => 'bbPress Reply Posted' ],
-        'new_blog_comment'                => [ 'title' => 'New Blog Comment' ],
-        'plugin_create'                   => [ 'title' => 'Plugin Submitted' ],
-        'new_blog_post'                   => [ 'title' => 'New Blog Post' ],
-        'bpc_page_edit'                   => [ 'title' => 'BPC Page Edited' ],
-        'activity_comment'                => [ 'title' => 'Activity Comment Added' ],
-        'theme_create'                    => [ 'title' => 'Theme Submitted' ],
-        'test_activity'                   => [ 'title' => 'Test Activity' ],
-    ];
+	return array(
+		'forum_reply_create'              => array( 'title' => 'Forum Reply Posted' ),
+		'glotpress_translation_approved'  => array( 'title' => 'Translation Approved' ),
+		'forum_topic_create'              => array( 'title' => 'Forum Topic Started' ),
+		'updated_profile'                 => array( 'title' => 'Profile Updated' ),
+		'glotpress_translation_suggested' => array( 'title' => 'Translation Suggested' ),
+		'learn_course_complete'           => array( 'title' => 'Course Completed' ),
+		'blog_comment_create'             => array( 'title' => 'Blog Comment Posted' ),
+		'blog_post_create'                => array( 'title' => 'Blog Post Published' ),
+		'blog_handbook_update'            => array( 'title' => 'Handbook Updated' ),
+		'wordcamp_attendee_add'           => array( 'title' => 'Registered for WordCamp' ),
+		'glotpress_translation_reviewed'  => array( 'title' => 'Translation Reviewed' ),
+		'wordcamp_attendee_checked_in'    => array( 'title' => 'Checked In at WordCamp' ),
+		'wordcamp_organizer_add'          => array( 'title' => 'Joined WordCamp as Organizer' ),
+		'wordcamp_speaker_add'            => array( 'title' => 'Spoke at WordCamp' ),
+		'wordcamp_mentor_assign'          => array( 'title' => 'Mentored at WordCamp' ),
+		'slack_props_given'               => array( 'title' => 'Gave Slack Props' ),
+		'workshop_presenter_assign'       => array( 'title' => 'Presented Workshop' ),
+		'commit'                          => array( 'title' => 'Code Committed' ),
+		'review'                          => array( 'title' => 'Code Reviewed' ),
+		'plugin_review'                   => array( 'title' => 'Plugin Reviewed' ),
+		'activity_update'                 => array( 'title' => 'Activity Updated' ),
+		'github_issue_create'             => array( 'title' => 'GitHub Issue Opened' ),
+		'bbp_topic_create'                => array( 'title' => 'bbPress Topic Started' ),
+		'bbp_reply_create'                => array( 'title' => 'bbPress Reply Posted' ),
+		'new_blog_comment'                => array( 'title' => 'New Blog Comment' ),
+		'plugin_create'                   => array( 'title' => 'Plugin Submitted' ),
+		'new_blog_post'                   => array( 'title' => 'New Blog Post' ),
+		'bpc_page_edit'                   => array( 'title' => 'BPC Page Edited' ),
+		'activity_comment'                => array( 'title' => 'Activity Comment Added' ),
+		'theme_create'                    => array( 'title' => 'Theme Submitted' ),
+		'test_activity'                   => array( 'title' => 'Test Activity' ),
+	);
 }
 
 /**
@@ -69,9 +69,9 @@ function wporgcd_get_event_types() {
  * @return array List of event_type slugs to exclude from views.
  */
 function wporgcd_get_excluded_event_types() {
-    return [
-        'updated_profile',
-    ];
+	return array(
+		'updated_profile',
+	);
 }
 
 /**
@@ -91,21 +91,23 @@ function wporgcd_get_excluded_event_types() {
  * @return string Prepared SQL fragment, e.g. "event_type IN ('a','b','c')".
  */
 function wporgcd_get_event_type_filter_sql() {
-    global $wpdb;
+	global $wpdb;
 
-    $allowed = array_values( array_diff(
-        array_keys( wporgcd_get_event_types() ),
-        wporgcd_get_excluded_event_types()
-    ) );
+	$allowed = array_values(
+		array_diff(
+			array_keys( wporgcd_get_event_types() ),
+			wporgcd_get_excluded_event_types()
+		)
+	);
 
-    if ( empty( $allowed ) ) {
-        return '1=0';
-    }
+	if ( empty( $allowed ) ) {
+		return '1=0';
+	}
 
-    $placeholders = implode( ',', array_fill( 0, count( $allowed ), '%s' ) );
+	$placeholders = implode( ',', array_fill( 0, count( $allowed ), '%s' ) );
 
-    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is built from a fixed-size array of '%s' tokens
-    return $wpdb->prepare( "event_type IN ($placeholders)", $allowed );
+	// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is built from a fixed-size array of '%s' tokens; the array IS the placeholder list.
+	return $wpdb->prepare( "event_type IN ($placeholders)", $allowed );
 }
 
 /**
@@ -114,74 +116,197 @@ function wporgcd_get_event_type_filter_sql() {
  * @return array Ladders keyed by ID, in evaluation order.
  */
 function wporgcd_get_ladders() {
-    return [
-        'connect' => [
-            'title'        => 'Connect',
-            'requirements' => [
-                [ 'event_type' => 'forum_reply_create',              'min' => 3 ],
-                [ 'event_type' => 'forum_topic_create',              'min' => 1 ],
-                [ 'event_type' => 'glotpress_translation_suggested', 'min' => 5 ],
-                [ 'event_type' => 'learn_course_complete',           'min' => 1 ],
-                [ 'event_type' => 'blog_comment_create',             'min' => 3 ],
-                [ 'event_type' => 'wordcamp_attendee_add',           'min' => 1 ],
-                [ 'event_type' => 'wordcamp_attendee_checked_in',    'min' => 1 ],
-                [ 'event_type' => 'slack_props_given',               'min' => 2 ],
-            ],
-        ],
-        'contribute' => [
-            'title'        => 'Contribute',
-            'requirements' => [
-                [ 'event_type' => 'forum_reply_create',              'min' => 15 ],
-                [ 'event_type' => 'forum_topic_create',              'min' => 3 ],
-                [ 'event_type' => 'glotpress_translation_suggested', 'min' => 25 ],
-                [ 'event_type' => 'glotpress_translation_approved',  'min' => 10 ],
-                [ 'event_type' => 'glotpress_translation_reviewed',  'min' => 5 ],
-                [ 'event_type' => 'learn_course_complete',           'min' => 3 ],
-                [ 'event_type' => 'blog_comment_create',             'min' => 10 ],
-                [ 'event_type' => 'blog_post_create',                'min' => 1 ],
-                [ 'event_type' => 'blog_handbook_update',            'min' => 1 ],
-            ],
-        ],
-        'engage' => [
-            'title'        => 'Engage',
-            'requirements' => [
-                [ 'event_type' => 'forum_reply_create',              'min' => 50 ],
-                [ 'event_type' => 'glotpress_translation_approved',  'min' => 75 ],
-                [ 'event_type' => 'glotpress_translation_reviewed',  'min' => 25 ],
-                [ 'event_type' => 'blog_post_create',                'min' => 3 ],
-                [ 'event_type' => 'blog_handbook_update',            'min' => 5 ],
-                [ 'event_type' => 'blog_comment_create',             'min' => 30 ],
-                [ 'event_type' => 'wordcamp_speaker_add',            'min' => 1 ],
-                [ 'event_type' => 'slack_props_given',               'min' => 10 ],
-            ],
-        ],
-        'perform' => [
-            'title'        => 'Perform',
-            'requirements' => [
-                [ 'event_type' => 'forum_reply_create',              'min' => 200 ],
-                [ 'event_type' => 'glotpress_translation_approved',  'min' => 300 ],
-                [ 'event_type' => 'glotpress_translation_reviewed',  'min' => 100 ],
-                [ 'event_type' => 'blog_post_create',                'min' => 10 ],
-                [ 'event_type' => 'blog_handbook_update',            'min' => 15 ],
-                [ 'event_type' => 'wordcamp_speaker_add',            'min' => 2 ],
-                [ 'event_type' => 'workshop_presenter_assign',       'min' => 1 ],
-                [ 'event_type' => 'wordcamp_mentor_assign',          'min' => 1 ],
-            ],
-        ],
-        'lead' => [
-            'title'        => 'Lead',
-            'requirements' => [
-                [ 'event_type' => 'forum_reply_create',              'min' => 500 ],
-                [ 'event_type' => 'glotpress_translation_approved',  'min' => 1000 ],
-                [ 'event_type' => 'glotpress_translation_reviewed',  'min' => 500 ],
-                [ 'event_type' => 'blog_post_create',                'min' => 25 ],
-                [ 'event_type' => 'wordcamp_organizer_add',          'min' => 1 ],
-                [ 'event_type' => 'wordcamp_speaker_add',            'min' => 5 ],
-                [ 'event_type' => 'wordcamp_mentor_assign',          'min' => 2 ],
-                [ 'event_type' => 'workshop_presenter_assign',       'min' => 3 ],
-            ],
-        ],
-    ];
+	return array(
+		'connect'    => array(
+			'title'        => 'Connect',
+			'requirements' => array(
+				array(
+					'event_type' => 'forum_reply_create',
+					'min'        => 3,
+				),
+				array(
+					'event_type' => 'forum_topic_create',
+					'min'        => 1,
+				),
+				array(
+					'event_type' => 'glotpress_translation_suggested',
+					'min'        => 5,
+				),
+				array(
+					'event_type' => 'learn_course_complete',
+					'min'        => 1,
+				),
+				array(
+					'event_type' => 'blog_comment_create',
+					'min'        => 3,
+				),
+				array(
+					'event_type' => 'wordcamp_attendee_add',
+					'min'        => 1,
+				),
+				array(
+					'event_type' => 'wordcamp_attendee_checked_in',
+					'min'        => 1,
+				),
+				array(
+					'event_type' => 'slack_props_given',
+					'min'        => 2,
+				),
+			),
+		),
+		'contribute' => array(
+			'title'        => 'Contribute',
+			'requirements' => array(
+				array(
+					'event_type' => 'forum_reply_create',
+					'min'        => 15,
+				),
+				array(
+					'event_type' => 'forum_topic_create',
+					'min'        => 3,
+				),
+				array(
+					'event_type' => 'glotpress_translation_suggested',
+					'min'        => 25,
+				),
+				array(
+					'event_type' => 'glotpress_translation_approved',
+					'min'        => 10,
+				),
+				array(
+					'event_type' => 'glotpress_translation_reviewed',
+					'min'        => 5,
+				),
+				array(
+					'event_type' => 'learn_course_complete',
+					'min'        => 3,
+				),
+				array(
+					'event_type' => 'blog_comment_create',
+					'min'        => 10,
+				),
+				array(
+					'event_type' => 'blog_post_create',
+					'min'        => 1,
+				),
+				array(
+					'event_type' => 'blog_handbook_update',
+					'min'        => 1,
+				),
+			),
+		),
+		'engage'     => array(
+			'title'        => 'Engage',
+			'requirements' => array(
+				array(
+					'event_type' => 'forum_reply_create',
+					'min'        => 50,
+				),
+				array(
+					'event_type' => 'glotpress_translation_approved',
+					'min'        => 75,
+				),
+				array(
+					'event_type' => 'glotpress_translation_reviewed',
+					'min'        => 25,
+				),
+				array(
+					'event_type' => 'blog_post_create',
+					'min'        => 3,
+				),
+				array(
+					'event_type' => 'blog_handbook_update',
+					'min'        => 5,
+				),
+				array(
+					'event_type' => 'blog_comment_create',
+					'min'        => 30,
+				),
+				array(
+					'event_type' => 'wordcamp_speaker_add',
+					'min'        => 1,
+				),
+				array(
+					'event_type' => 'slack_props_given',
+					'min'        => 10,
+				),
+			),
+		),
+		'perform'    => array(
+			'title'        => 'Perform',
+			'requirements' => array(
+				array(
+					'event_type' => 'forum_reply_create',
+					'min'        => 200,
+				),
+				array(
+					'event_type' => 'glotpress_translation_approved',
+					'min'        => 300,
+				),
+				array(
+					'event_type' => 'glotpress_translation_reviewed',
+					'min'        => 100,
+				),
+				array(
+					'event_type' => 'blog_post_create',
+					'min'        => 10,
+				),
+				array(
+					'event_type' => 'blog_handbook_update',
+					'min'        => 15,
+				),
+				array(
+					'event_type' => 'wordcamp_speaker_add',
+					'min'        => 2,
+				),
+				array(
+					'event_type' => 'workshop_presenter_assign',
+					'min'        => 1,
+				),
+				array(
+					'event_type' => 'wordcamp_mentor_assign',
+					'min'        => 1,
+				),
+			),
+		),
+		'lead'       => array(
+			'title'        => 'Lead',
+			'requirements' => array(
+				array(
+					'event_type' => 'forum_reply_create',
+					'min'        => 500,
+				),
+				array(
+					'event_type' => 'glotpress_translation_approved',
+					'min'        => 1000,
+				),
+				array(
+					'event_type' => 'glotpress_translation_reviewed',
+					'min'        => 500,
+				),
+				array(
+					'event_type' => 'blog_post_create',
+					'min'        => 25,
+				),
+				array(
+					'event_type' => 'wordcamp_organizer_add',
+					'min'        => 1,
+				),
+				array(
+					'event_type' => 'wordcamp_speaker_add',
+					'min'        => 5,
+				),
+				array(
+					'event_type' => 'wordcamp_mentor_assign',
+					'min'        => 2,
+				),
+				array(
+					'event_type' => 'workshop_presenter_assign',
+					'min'        => 3,
+				),
+			),
+		),
+	);
 }
 
 /**
@@ -194,22 +319,22 @@ function wporgcd_get_ladders() {
  * @return array|false  The met requirement (with `event_type`, `min`, `achieved`) or false.
  */
 function wporgcd_check_ladder_requirements( $ladder, $counts ) {
-    if ( empty( $ladder['requirements'] ) ) {
-        return false;
-    }
+	if ( empty( $ladder['requirements'] ) ) {
+		return false;
+	}
 
-    foreach ( $ladder['requirements'] as $req ) {
-        $event_type = $req['event_type'];
-        $min        = $req['min'];
+	foreach ( $ladder['requirements'] as $req ) {
+		$event_type = $req['event_type'];
+		$min        = $req['min'];
 
-        if ( isset( $counts[ $event_type ] ) && $counts[ $event_type ] >= $min ) {
-            return array(
-                'event_type' => $event_type,
-                'min'        => $min,
-                'achieved'   => $counts[ $event_type ],
-            );
-        }
-    }
+		if ( isset( $counts[ $event_type ] ) && $counts[ $event_type ] >= $min ) {
+			return array(
+				'event_type' => $event_type,
+				'min'        => $min,
+				'achieved'   => $counts[ $event_type ],
+			);
+		}
+	}
 
-    return false;
+	return false;
 }

@@ -85,11 +85,14 @@ function wporgcd_insert_event( $event ) {
 	$columns_sql  = implode( ', ', $columns );
 	$placeholders = implode( ', ', $formats );
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name and columns are safe
-	$result = $wpdb->query( $wpdb->prepare(
-		"INSERT IGNORE INTO $table_name ($columns_sql) VALUES ($placeholders)",
-		$values
-	) );
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Table name and column lists are built from internal whitelists; placeholders are pre-generated.
+	$result = $wpdb->query(
+		$wpdb->prepare(
+			"INSERT IGNORE INTO $table_name ($columns_sql) VALUES ($placeholders)",
+			$values
+		)
+	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	if ( $result === false ) {
 		return new WP_Error(
@@ -157,7 +160,7 @@ function wporgcd_bulk_insert_events( $events, $batch_size = 500 ) {
 			$event_created_date       = ! empty( $event['event_created_date'] )
 				? sanitize_text_field( $event['event_created_date'] )
 				: null;
-			$event_data = null;
+			$event_data               = null;
 			if ( ! empty( $event['event_data'] ) ) {
 				$event_data = is_string( $event['event_data'] )
 					? $event['event_data']
@@ -175,15 +178,16 @@ function wporgcd_bulk_insert_events( $events, $batch_size = 500 ) {
 
 		$placeholders_sql = implode( ', ', $placeholders_list );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe, placeholders are controlled
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Table name is safe; $placeholders_sql is the generated %s/%d list.
 		$query = $wpdb->prepare(
 			"INSERT IGNORE INTO $table_name 
 			 (event_id, contributor_id, event_type, contributor_created_date, event_created_date, event_data) 
 			 VALUES $placeholders_sql",
 			$values_list
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared -- Query is prepared above
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Query is prepared above; bulk insert is intentionally uncached.
 		$result = $wpdb->query( $query );
 
 		if ( $result === false ) {
