@@ -19,18 +19,17 @@ function wporgcd_get_reference_end_date() {
 
 /**
  * Get the reference start date for time-based calculations.
- * This is the date of the oldest event.
+ * Hardcoded floor configured in config.php.
  */
 function wporgcd_get_reference_start_date() {
-	return get_option( 'wporgcd_reference_start_date', current_time( 'Y-m-d' ) );
+	return WPORGCD_REFERENCE_START_DATE;
 }
 
 /**
- * Set the reference dates from the events table.
+ * Set the reference end date from the events table.
  *
  * Called after each successful event import (see wporgcd_bulk_insert_events())
- * so reference dates always reflect the newest data. Start date is set to 5
- * years before the end date to exclude unreliable older data.
+ * so the reference end date always reflects the newest event.
  */
 function wporgcd_set_reference_date_from_events() {
 	global $wpdb;
@@ -44,9 +43,5 @@ function wporgcd_set_reference_date_from_events() {
 	if ( $latest ) {
 		$end_date = gmdate( 'Y-m-d', strtotime( $latest ) );
 		update_option( 'wporgcd_reference_end_date', $end_date );
-
-		// Start date is 5 years before the end date
-		$start_date = gmdate( 'Y-m-d', strtotime( $end_date . ' -5 years' ) );
-		update_option( 'wporgcd_reference_start_date', $start_date );
 	}
 }

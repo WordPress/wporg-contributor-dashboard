@@ -724,6 +724,15 @@ dialog.wporgcd-modal .modal-body p strong { color: var(--text); }
 	.bar-wrap { width: 60px; }
 	.footer { padding: 16px 12px 0; font-size: 11px; }
 }
+
+/* Top progress bar: thin indeterminate bar shown during full-page
+	navigations (link clicks + filter form submits). It asymptotes
+	toward ~90% so it feels responsive without falsely promising
+	completion — the new document replaces this DOM on arrival, which
+	is what actually makes the bar disappear. Wiring lives in the
+	inline <script> emitted by wporgcd_render_layout(). */
+.top-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--blue); z-index: 9999; pointer-events: none; box-shadow: 0 0 8px rgba(56, 88, 233, 0.45); transition: width 0.2s ease-out, opacity 0.2s ease-out; }
+body.is-navigating, body.is-navigating a, body.is-navigating button { cursor: progress; }
 		</style>
 	</head>
 	<body>
@@ -807,6 +816,63 @@ dialog.wporgcd-modal .modal-body p strong { color: var(--text); }
 				e.target.close();
 			}
 		});
+
+		// Top progress bar: shows an animated bar at the top of the page
+		// during full-page navigations (link clicks + filter form submits).
+		// The bar asymptotes toward ~90% — the browser replacing the
+		// document on arrival is what makes the bar visually disappear.
+		// Paired with the .top-progress and .is-navigating CSS rules above.
+		(function () {
+			var bar = null, timer = null, pct = 0;
+			function ensureBar() {
+				if (bar) return;
+				bar = document.createElement('div');
+				bar.className = 'top-progress';
+				document.body.appendChild(bar);
+			}
+			function start() {
+				if (timer) return;
+				ensureBar();
+				document.body.classList.add('is-navigating');
+				pct = 0;
+				bar.style.opacity = '1';
+				bar.style.width = '0';
+				timer = setInterval(function () {
+					pct += (90 - pct) * 0.06;
+					bar.style.width = pct.toFixed(1) + '%';
+				}, 180);
+			}
+			function stop() {
+				if (timer) { clearInterval(timer); timer = null; }
+				if (bar) { bar.style.opacity = '0'; bar.style.width = '0'; }
+				document.body.classList.remove('is-navigating');
+			}
+			document.addEventListener('click', function (e) {
+				if (e.defaultPrevented) return;
+				// Only plain left-clicks trigger a same-tab navigation;
+				// modifier-clicks open a new tab/window and leave this page intact.
+				if (e.button !== 0) return;
+				if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+				var a = e.target.closest('a[href]');
+				if (!a) return;
+				if (a.target && a.target !== '_self') return;
+				if (a.host && a.host !== location.host) return;
+				var href = a.getAttribute('href');
+				// In-page anchors don't trigger a document load.
+				if (!href || href.charAt(0) === '#') return;
+				start();
+			});
+			document.addEventListener('submit', function (e) {
+				if (e.defaultPrevented) return;
+				start();
+			});
+			window.addEventListener('pagehide', stop);
+			window.addEventListener('pageshow', function (e) {
+				// bfcache restore: the previous document is reused, so the
+				// bar from the prior navigation is still in the DOM — clear it.
+				if (e.persisted) stop();
+			});
+		})();
 		</script>
 	</body>
 	</html>

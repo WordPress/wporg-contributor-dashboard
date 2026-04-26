@@ -17,6 +17,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'WPORGCD_STATUS_ACTIVE_DAYS', 30 );
 define( 'WPORGCD_STATUS_WARNING_DAYS', 90 );
 
+// Hard floor (YYYY-MM-DD) for the dashboard's queryable window. Events
+// older than this are excluded from every view — date pickers won't let
+// users go further back, the wrapped year picker hides earlier years, etc.
+// Edit this if you want to expose more (or less) historical data.
+define( 'WPORGCD_REFERENCE_START_DATE', '2019-01-01' );
+
 /**
  * Get configured event types.
  *
