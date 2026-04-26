@@ -71,35 +71,39 @@ function wporgcd_get_views() {
 				),
 			),
 		),
-		'onboarding' => array(
-			'title'   => 'Onboarding',
-			'render'  => 'wporgcd_render_onboarding_view',
-			'filters' => array(
-				'registered_date'     => array(
-					'type'                      => 'date_range',
-					'label'                     => 'User registered date',
-					'column'                    => 'registered_date',
-					'default_days'              => 180,
-					'default_start_offset_days' => 365,
-					'max_days'                  => 180,
-				),
-				'include_inactive'    => array(
-					'type'    => 'checkbox',
-					'label'   => 'Include inactive users',
-					'default' => false,
-				),
-				'first_event_type'    => array(
-					'type'        => 'event_type_select',
-					'label'       => 'First event type',
-					'placeholder' => 'Any first event…',
-				),
-				'exclude_event_types' => array(
-					'type'        => 'event_type_multiselect',
-					'label'       => 'Exclude event types',
-					'placeholder' => 'Exclude event types…',
-				),
-			),
-		),
+		// Onboarding view temporarily disabled — uncomment to re-enable.
+		// Hiding it from this registry removes it from the sidebar nav and
+		// makes ?view=onboarding fall back to the default 'wrapped' view via
+		// the whitelist check in wporgcd_render_frontend_dashboard().
+		// 'onboarding' => array(
+		// 'title'   => 'Onboarding',
+		// 'render'  => 'wporgcd_render_onboarding_view',
+		// 'filters' => array(
+		// 'registered_date'     => array(
+		// 'type'                      => 'date_range',
+		// 'label'                     => 'User registered date',
+		// 'column'                    => 'registered_date',
+		// 'default_days'              => 180,
+		// 'default_start_offset_days' => 365,
+		// 'max_days'                  => 180,
+		// ),
+		// 'include_inactive'    => array(
+		// 'type'    => 'checkbox',
+		// 'label'   => 'Include inactive users',
+		// 'default' => false,
+		// ),
+		// 'first_event_type'    => array(
+		// 'type'        => 'event_type_select',
+		// 'label'       => 'First event type',
+		// 'placeholder' => 'Any first event…',
+		// ),
+		// 'exclude_event_types' => array(
+		// 'type'        => 'event_type_multiselect',
+		// 'label'       => 'Exclude event types',
+		// 'placeholder' => 'Exclude event types…',
+		// ),
+		// ),
+		// ),
 		'cohorts'    => array(
 			'title'   => 'Cohorts',
 			'render'  => 'wporgcd_render_cohorts_view',
