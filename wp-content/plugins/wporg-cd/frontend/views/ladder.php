@@ -28,17 +28,22 @@ function wporgcd_render_ladder_view( $filters ) {
 	// wporgcd_get_query_cap_date() and includes/cache.php.
 	$cap_date = wporgcd_get_query_cap_date();
 
-	$contrib_start    = isset( $filters['contribution_date']['start'] ) ? $filters['contribution_date']['start'] : null;
-	$contrib_end      = isset( $filters['contribution_date']['end'] ) ? $filters['contribution_date']['end'] : null;
-	$reg_start        = isset( $filters['registered_date']['start'] ) ? $filters['registered_date']['start'] : null;
-	$reg_end          = isset( $filters['registered_date']['end'] ) ? $filters['registered_date']['end'] : null;
-	$include_inactive = ! empty( $filters['include_inactive'] );
+	$contrib_start       = isset( $filters['contribution_date']['start'] ) ? $filters['contribution_date']['start'] : null;
+	$contrib_end         = isset( $filters['contribution_date']['end'] ) ? $filters['contribution_date']['end'] : null;
+	$reg_start           = isset( $filters['registered_date']['start'] ) ? $filters['registered_date']['start'] : null;
+	$reg_end             = isset( $filters['registered_date']['end'] ) ? $filters['registered_date']['end'] : null;
+	$include_inactive    = ! empty( $filters['include_inactive'] );
+	$first_event_filter  = isset( $filters['first_event_type'] ) ? (string) $filters['first_event_type'] : '';
+	$exclude_event_types = isset( $filters['exclude_event_types'] ) && is_array( $filters['exclude_event_types'] )
+		? $filters['exclude_event_types']
+		: array();
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 	// $events_table comes from wporgcd_get_table() (internal whitelist) and every
 	// dynamic value is bound via $wpdb->prepare() before being interpolated.
-	// Event-type filter (excluded slugs come from wporgcd_get_excluded_event_types()).
-	$where = array( wporgcd_get_event_type_filter_sql() );
+	// Event-type filter combines the global excluded list (config.php) with
+	// the per-request `exclude_event_types` filter into a single allow-list.
+	$where = array( wporgcd_get_event_type_filter_sql( $exclude_event_types ) );
 	if ( $contrib_start !== null ) {
 		$where[] = $wpdb->prepare( 'event_created_date >= %s', $contrib_start );
 	}
@@ -53,10 +58,15 @@ function wporgcd_render_ladder_view( $filters ) {
 	}
 	$where_sql = implode( ' AND ', $where );
 
+	// MIN(event_created_date) is needed so the PHP rollup can derive the
+	// per-contributor first event_type for the first_event_type filter
+	// below — the rest of the column list (counts + last activity) feeds
+	// the funnel + status pipeline that already existed before the filter.
 	$rows = $wpdb->get_results(
 		"SELECT contributor_id,
                 event_type,
                 COUNT(*) AS cnt,
+                MIN(event_created_date) AS first_type_date,
                 MAX(event_created_date) AS last_type_date
          FROM $events_table
          WHERE $where_sql
@@ -64,19 +74,28 @@ function wporgcd_render_ladder_view( $filters ) {
 	);
     // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 
-	// Collapse rows into per-contributor counts + latest activity date.
+	// Collapse rows into per-contributor counts + first/last activity dates.
+	// The per-contributor `first_event_type` is the event_type with the
+	// smallest first_type_date — same tiebreaking strategy as onboarding.php
+	// (whichever row arrives first wins on a tie).
 	$contributors = array();
 	foreach ( $rows as $r ) {
 		$cid = $r->contributor_id;
 		if ( ! isset( $contributors[ $cid ] ) ) {
 			$contributors[ $cid ] = array(
-				'counts' => array(),
-				'last'   => '',
+				'counts'           => array(),
+				'last'             => '',
+				'first'            => null,
+				'first_event_type' => null,
 			);
 		}
 		$contributors[ $cid ]['counts'][ $r->event_type ] = (int) $r->cnt;
 		if ( $r->last_type_date > $contributors[ $cid ]['last'] ) {
 			$contributors[ $cid ]['last'] = $r->last_type_date;
+		}
+		if ( null === $contributors[ $cid ]['first'] || $r->first_type_date < $contributors[ $cid ]['first'] ) {
+			$contributors[ $cid ]['first']            = $r->first_type_date;
+			$contributors[ $cid ]['first_event_type'] = $r->event_type;
 		}
 	}
 
@@ -85,6 +104,13 @@ function wporgcd_render_ladder_view( $filters ) {
 	// a count in the funnel-info column (see wporgcd_render_modal_trigger()).
 	$ladder_stats = array();
 	foreach ( $contributors as $cid => $data ) {
+		// Pre-stage filter: skip contributors whose first event doesn't match
+		// the first_event_type filter. Applied before ladder evaluation so
+		// the funnel counts only reflect contributors that pass the filter.
+		if ( '' !== $first_event_filter && $data['first_event_type'] !== $first_event_filter ) {
+			continue;
+		}
+
 		$current = null;
 		foreach ( $ladders as $lid => $ladder ) {
 			if ( wporgcd_check_ladder_requirements( $ladder, $data['counts'] ) ) {

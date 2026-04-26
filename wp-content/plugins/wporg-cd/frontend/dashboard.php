@@ -39,7 +39,7 @@ function wporgcd_get_views() {
 			'title'   => 'Ladder',
 			'render'  => 'wporgcd_render_ladder_view',
 			'filters' => array(
-				'registered_date'   => array(
+				'registered_date'     => array(
 					'type'                      => 'date_range',
 					'label'                     => 'User registered date',
 					'column'                    => 'registered_date',
@@ -47,17 +47,27 @@ function wporgcd_get_views() {
 					'default_start_offset_days' => 365,
 					'max_days'                  => 180,
 				),
-				'contribution_date' => array(
+				'contribution_date'   => array(
 					'type'         => 'date_range',
 					'label'        => 'Contribution date',
 					'column'       => 'event_created_date',
 					'default_days' => 730,
 					'max_days'     => 730,
 				),
-				'include_inactive'  => array(
+				'include_inactive'    => array(
 					'type'    => 'checkbox',
 					'label'   => 'Include inactive users',
 					'default' => false,
+				),
+				'first_event_type'    => array(
+					'type'        => 'event_type_select',
+					'label'       => 'First event type',
+					'placeholder' => 'Any first event…',
+				),
+				'exclude_event_types' => array(
+					'type'        => 'event_type_multiselect',
+					'label'       => 'Exclude event types',
+					'placeholder' => 'Exclude event types…',
 				),
 			),
 		),
@@ -65,7 +75,7 @@ function wporgcd_get_views() {
 			'title'   => 'Onboarding',
 			'render'  => 'wporgcd_render_onboarding_view',
 			'filters' => array(
-				'registered_date'  => array(
+				'registered_date'     => array(
 					'type'                      => 'date_range',
 					'label'                     => 'User registered date',
 					'column'                    => 'registered_date',
@@ -73,17 +83,45 @@ function wporgcd_get_views() {
 					'default_start_offset_days' => 365,
 					'max_days'                  => 180,
 				),
-				'include_inactive' => array(
+				'include_inactive'    => array(
 					'type'    => 'checkbox',
 					'label'   => 'Include inactive users',
 					'default' => false,
+				),
+				'first_event_type'    => array(
+					'type'        => 'event_type_select',
+					'label'       => 'First event type',
+					'placeholder' => 'Any first event…',
+				),
+				'exclude_event_types' => array(
+					'type'        => 'event_type_multiselect',
+					'label'       => 'Exclude event types',
+					'placeholder' => 'Exclude event types…',
 				),
 			),
 		),
 		'cohorts'    => array(
 			'title'   => 'Cohorts',
 			'render'  => 'wporgcd_render_cohorts_view',
-			'filters' => array(),
+			'filters' => array(
+				'registered_date'     => array(
+					'type'         => 'date_range',
+					'label'        => 'User registered date',
+					'column'       => 'registered_date',
+					'default_days' => 365,
+					'max_days'     => 730,
+				),
+				'first_event_type'    => array(
+					'type'        => 'event_type_select',
+					'label'       => 'First event type',
+					'placeholder' => 'Any first event…',
+				),
+				'exclude_event_types' => array(
+					'type'        => 'event_type_multiselect',
+					'label'       => 'Exclude event types',
+					'placeholder' => 'Exclude event types…',
+				),
+			),
 		),
 	);
 }
@@ -217,6 +255,45 @@ function wporgcd_resolve_filters( $view_key ) {
 		} elseif ( $type === 'checkbox' ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only boolean check
 			$resolved[ $id ] = isset( $_GET[ $id ] ) && $_GET[ $id ] === '1';
+		} elseif ( $type === 'event_type_select' || $type === 'event_type_multiselect' ) {
+			// Allow-list: registered event types minus the global exclusion
+			// list. Mirrors the catalog used by the ladder editor + the new
+			// sidebar widgets, so an unknown or globally-excluded slug from
+			// $_GET silently resolves to "no filter" rather than an error.
+			$known    = wporgcd_get_event_types();
+			$excluded = array_flip( wporgcd_get_excluded_event_types() );
+
+			if ( $type === 'event_type_select' ) {
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Read-only, sanitized below
+				$raw = isset( $_GET[ $id ] ) ? sanitize_key( wp_unslash( $_GET[ $id ] ) ) : '';
+				if ( '' === $raw || ! isset( $known[ $raw ] ) || isset( $excluded[ $raw ] ) ) {
+					$resolved[ $id ] = '';
+				} else {
+					$resolved[ $id ] = $raw;
+				}
+			} else {
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each entry sanitized individually below
+				$raw = isset( $_GET[ $id ] ) ? wp_unslash( $_GET[ $id ] ) : array();
+				if ( ! is_array( $raw ) ) {
+					$raw = array();
+				}
+				$seen = array();
+				foreach ( $raw as $entry ) {
+					if ( ! is_scalar( $entry ) ) {
+						continue;
+					}
+					$slug = sanitize_key( (string) $entry );
+					if ( '' === $slug || ! isset( $known[ $slug ] ) || isset( $excluded[ $slug ] ) ) {
+						continue;
+					}
+					$seen[ $slug ] = true;
+				}
+				$values = array_keys( $seen );
+				// Sort so {a,b} and {b,a} produce the same resolved array
+				// — and therefore the same cache key downstream.
+				sort( $values );
+				$resolved[ $id ] = $values;
+			}
 		}
 	}
 
@@ -341,6 +418,46 @@ function wporgcd_render_filter_widget( $id, $def, $value, $ref_start, $ref_end )
 			</div>
 			<?php
 			break;
+
+		case 'event_type_select':
+		case 'event_type_multiselect':
+			// Allow-list mirrors the resolver: registered event types minus
+			// the global exclusion list, sorted by display title. Same
+			// catalog the ladder editor uses (frontend/views/ladder.php),
+			// so users see the same vocabulary across the dashboard.
+			$catalog       = wporgcd_get_event_types();
+			$excluded_set  = array_flip( wporgcd_get_excluded_event_types() );
+			$type_options  = array();
+			foreach ( $catalog as $et_id => $et ) {
+				if ( isset( $excluded_set[ $et_id ] ) ) {
+					continue;
+				}
+				$type_options[ $et_id ] = isset( $et['title'] ) ? (string) $et['title'] : (string) $et_id;
+			}
+			asort( $type_options );
+
+			$is_multi    = ( 'event_type_multiselect' === $def['type'] );
+			$placeholder = isset( $def['placeholder'] ) ? (string) $def['placeholder'] : '';
+			$widget_id   = 'wporgcd-filter-' . $id;
+			$selected    = $is_multi ? array_flip( (array) $value ) : array( (string) $value => true );
+			?>
+			<div class="filter">
+				<label class="filter-label" for="<?php echo esc_attr( $widget_id ); ?>"><?php echo esc_html( $def['label'] ); ?></label>
+				<select id="<?php echo esc_attr( $widget_id ); ?>"
+					name="<?php echo esc_attr( $id . ( $is_multi ? '[]' : '' ) ); ?>"
+					class="filter-event-type<?php echo $is_multi ? ' filter-event-type-multi' : ' filter-event-type-single'; ?>"
+					data-placeholder="<?php echo esc_attr( $placeholder ); ?>"
+					<?php echo $is_multi ? 'multiple' : ''; ?>>
+					<?php if ( ! $is_multi ) : ?>
+						<option value=""<?php echo empty( $value ) ? ' selected' : ''; ?>><?php echo esc_html( '' === $placeholder ? '— Any —' : $placeholder ); ?></option>
+					<?php endif; ?>
+					<?php foreach ( $type_options as $et_id => $title ) : ?>
+						<option value="<?php echo esc_attr( $et_id ); ?>"<?php echo isset( $selected[ $et_id ] ) ? ' selected' : ''; ?>><?php echo esc_html( $title ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+			<?php
+			break;
 	}
 }
 
@@ -356,12 +473,42 @@ function wporgcd_render_filter_sidebar( $view_key, $schema, $resolved ) {
 	$ref_start = wporgcd_get_reference_start_date();
 	$ref_end   = wporgcd_get_reference_end_date();
 
+	// The Reset link drops only the filter form's input names — every other
+	// $_GET param (notably ?ladder= on the ladder view) is preserved so a
+	// user resetting filters doesn't also blow away an active custom ladder.
+	// Date-range filters expand to <id>_start + <id>_end; everything else
+	// uses the filter id as-is, plus a [] suffix which http_build_query
+	// turns into the array-style query params used by multi-selects.
+	$filter_param_keys = array();
+	foreach ( $schema as $id => $def ) {
+		if ( 'date_range' === $def['type'] ) {
+			$filter_param_keys[] = $id . '_start';
+			$filter_param_keys[] = $id . '_end';
+		} else {
+			$filter_param_keys[] = $id;
+		}
+	}
+	$reset_url = wporgcd_build_view_url( $view_key, $filter_param_keys );
+
+	// Form submissions (method=GET) only carry the form's own named fields,
+	// so an active ?ladder= on the ladder view would silently revert to the
+	// default the moment a user applied any filter. Mirror it as a hidden
+	// input so Apply preserves the custom ladder.
+	$ladder_passthrough = '';
+	if ( 'ladder' === $view_key && function_exists( 'wporgcd_is_custom_ladder' ) && wporgcd_is_custom_ladder() ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- escaped at output below; payload is shape-validated upstream by wporgcd_is_custom_ladder().
+		$ladder_passthrough = (string) wp_unslash( $_GET['ladder'] );
+	}
+
 	ob_start();
 	?>
 	<aside class="filter-sidebar" aria-label="Filters">
 		<form method="get" action="" class="filter-form">
 			<h3 class="filter-title">Filters</h3>
 			<input type="hidden" name="view" value="<?php echo esc_attr( $view_key ); ?>">
+			<?php if ( '' !== $ladder_passthrough ) : ?>
+			<input type="hidden" name="ladder" value="<?php echo esc_attr( $ladder_passthrough ); ?>">
+			<?php endif; ?>
 
 			<?php
 			foreach ( $schema as $id => $def ) :
@@ -372,7 +519,7 @@ function wporgcd_render_filter_sidebar( $view_key, $schema, $resolved ) {
 
 			<div class="filter-actions">
 				<button type="submit" class="filter-apply">Apply</button>
-				<a href="<?php echo esc_url( '?view=' . rawurlencode( $view_key ) ); ?>" class="filter-reset">Reset</a>
+				<a href="<?php echo esc_url( $reset_url ); ?>" class="filter-reset">Reset</a>
 			</div>
 		</form>
 	</aside>
@@ -498,6 +645,7 @@ function wporgcd_render_layout( $active_view, $filters, $inner_html ) {
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title><?php echo esc_html( $view_title ); ?> &ndash; WordPress Contributor Dashboard</title>
+		<link rel="stylesheet" href="<?php echo esc_url( plugins_url( 'assets/tom-select/tom-select.css', __FILE__ ) ); ?>">
 		<style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root { --bg: #f5f5f5; --card: #fff; --border: #e0e0e0; --text: #1a1a1a; --muted: #666; --light: #999; --blue: #3858e9; --blue-hover: #2c48c7; --green: #00a32a; --yellow: #dba617; --red: #dc3232; --purple: #826eb4; --sidebar-w: 240px; --filterbar-w: 260px; }
@@ -539,6 +687,24 @@ a { color: inherit; }
 .filter-apply:hover { background: var(--blue-hover); }
 .filter-reset { color: var(--muted); font-size: 13px; text-decoration: none; padding: 8px 10px; transition: color 0.15s; white-space: nowrap; }
 .filter-reset:hover { color: var(--blue); }
+
+/* Event-type select / multi-select. The native rules cover the
+	pre-enhancement state (Tom Select hides the underlying <select> and
+	replaces it with .ts-wrapper); the .filter-sidebar .ts-* overrides
+	below paint the enhanced UI to match the date pickers + checkboxes. */
+.filter-event-type { width: 100%; font: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--text); }
+.filter-event-type:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 2px rgba(56, 88, 233, 0.15); }
+.filter-event-type[multiple] { min-height: 90px; padding: 4px; }
+.filter-sidebar .ts-wrapper { font: inherit; font-size: 13px; }
+.filter-sidebar .ts-control { padding: 5px 10px; min-height: 36px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--text); box-shadow: none; }
+.filter-sidebar .ts-wrapper.focus .ts-control { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(56, 88, 233, 0.15); }
+.filter-sidebar .ts-control input::placeholder { color: var(--muted); }
+.filter-sidebar .ts-wrapper.multi .ts-control > .item { background: #eef1fd; border: 1px solid #c5cff5; border-radius: 4px; color: var(--blue); padding: 1px 6px; margin: 1px 4px 1px 0; }
+.filter-sidebar .ts-dropdown { font-size: 13px; border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-top: 2px; }
+.filter-sidebar .ts-dropdown .option { padding: 6px 10px; }
+.filter-sidebar .ts-dropdown .active { background: var(--blue); color: #fff; }
+.filter-sidebar .ts-wrapper.plugin-clear_button .clear-button { color: var(--muted); top: 50%; transform: translateY(-50%); }
+.filter-sidebar .ts-wrapper.plugin-clear_button .clear-button:hover { color: var(--red); }
 
 /* Wrapped intro (tagline above the period selector) */
 .wrapped-intro { margin-bottom: 20px; }
@@ -710,6 +876,31 @@ dialog.wporgcd-modal.wporgcd-modal-wide { width: min(720px, 92vw); }
 .ladder-editor-actions-spacer { flex: 1 1 auto; }
 .ladder-editor-error { font-size: 12px; color: var(--red); }
 
+/* Cohorts heatmap (Cohorts view). The first two columns and the header
+	row are sticky inside .cohort-table-wrap so the cohort label and size
+	stay visible when the table is horizontally scrolled. Cell tints are
+	emitted as inline rgba() backgrounds by the view (computed against the
+	global cell min/max), so the heatmap doesn't need a JS pass to colorize. */
+.cohort-card { padding: 20px; }
+.cohort-card h2 { margin-bottom: 6px; }
+.cohort-card-help { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0 0 16px; max-width: 720px; }
+.cohort-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+.cohort-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; }
+.cohort-table th, .cohort-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.cohort-table tbody tr:last-child td { border-bottom: none; }
+.cohort-table thead th { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg); position: sticky; top: 0; z-index: 1; }
+.cohort-table th.cohort-col, .cohort-table td.cohort-col { text-align: left; font-weight: 500; color: var(--text); width: 140px; }
+.cohort-table th.cohort-num, .cohort-table td.cohort-num { text-align: right; width: 110px; color: var(--text); font-variant-numeric: tabular-nums; }
+.cohort-table th.cohort-cell-h, .cohort-table td.cohort-cell { text-align: center; min-width: 64px; font-variant-numeric: tabular-nums; color: var(--text); }
+.cohort-table .cohort-cell-empty { background: var(--bg); color: transparent; }
+.cohort-table .cohort-col-sticky { position: sticky; background: var(--card); z-index: 2; }
+.cohort-table .cohort-col-sticky-1 { left: 0; }
+.cohort-table .cohort-col-sticky-2 { left: 140px; box-shadow: 1px 0 0 var(--border); }
+.cohort-table thead .cohort-col-sticky { background: var(--bg); z-index: 3; }
+.cohort-table .cohort-row-avg td { font-weight: 600; border-top: 2px solid var(--border); }
+.cohort-table .cohort-row-avg td.cohort-col { text-transform: uppercase; font-size: 11px; color: var(--muted); letter-spacing: 0.5px; }
+.cohort-table .cohort-row-avg td.cohort-col-sticky { background: var(--bg); }
+
 .view-placeholder { text-align: center; padding: 48px 24px; }
 .view-placeholder h2 { margin-bottom: 12px; }
 .view-placeholder p { color: var(--muted); max-width: 520px; margin: 0 auto 8px; font-size: 14px; }
@@ -792,6 +983,12 @@ dialog.wporgcd-modal.wporgcd-modal-wide { width: min(720px, 92vw); }
 	.mini-chart-label { width: 52px; }
 	.mini-chart-value { width: 50px; }
 	.period-btn { font-size: 12px; padding: 7px 12px; }
+	.cohort-card { padding: 16px; }
+	.cohort-table th, .cohort-table td { padding: 8px 10px; font-size: 12px; }
+	.cohort-table th.cohort-col, .cohort-table td.cohort-col { width: 100px; }
+	.cohort-table th.cohort-num, .cohort-table td.cohort-num { width: 80px; }
+	.cohort-table .cohort-col-sticky-2 { left: 100px; }
+	.cohort-table th.cohort-cell-h, .cohort-table td.cohort-cell { min-width: 52px; }
 }
 
 @media (max-width: 576px) {
@@ -850,8 +1047,12 @@ body.is-navigating, body.is-navigating a, body.is-navigating button { cursor: pr
 				</div>
 				<nav class="sidebar-nav" aria-label="Primary">
 					<?php
+					// Each menu click opens the report with its default filters —
+					// we deliberately don't carry over $_GET (filters, ?ladder=,
+					// ?period=) since each view declares its own filter set and
+					// "menu = fresh start" is more predictable than silent carryover.
 					foreach ( $views as $key => $v ) :
-						$url = wporgcd_build_view_url( $key );
+						$url = '?view=' . rawurlencode( $key );
 						?>
 					<a href="<?php echo esc_url( $url ); ?>" class="<?php echo $active_view === $key ? 'active' : ''; ?>">
 						<?php echo esc_html( $v['title'] ); ?>
@@ -893,7 +1094,34 @@ body.is-navigating, body.is-navigating a, body.is-navigating button { cursor: pr
 			endif;
 			?>
 		</div>
+		<script src="<?php echo esc_url( plugins_url( 'assets/tom-select/tom-select.complete.min.js', __FILE__ ) ); ?>" defer></script>
 		<script>
+		// Tom Select enhances the .filter-event-type-* native <select>
+		// elements emitted by wporgcd_render_filter_widget() into the
+		// Metorik-style placeholder dropdowns ("Select event types…") with
+		// search + chip removal. The native selects still submit normally
+		// if Tom Select is unavailable (CSP, slow CDN, JS disabled), so
+		// the filter form continues to work as a graceful fallback.
+		document.addEventListener('DOMContentLoaded', function () {
+			if (typeof TomSelect === 'undefined') return;
+			document.querySelectorAll('.filter-event-type-single').forEach(function (el) {
+				new TomSelect(el, {
+					plugins: ['clear_button'],
+					placeholder: el.dataset.placeholder || '',
+					allowEmptyOption: true,
+					maxOptions: 200
+				});
+			});
+			document.querySelectorAll('.filter-event-type-multi').forEach(function (el) {
+				new TomSelect(el, {
+					plugins: ['remove_button'],
+					placeholder: el.dataset.placeholder || '',
+					hideSelected: true,
+					maxOptions: 200
+				});
+			});
+		});
+
 		// Modal open/close wiring for wporgcd_render_modal_trigger() +
 		// wporgcd_render_modal(). Single delegated click handler, no
 		// dependencies. ESC-to-close and focus management come from the

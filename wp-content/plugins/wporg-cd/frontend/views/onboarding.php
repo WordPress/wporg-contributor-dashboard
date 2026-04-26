@@ -25,16 +25,21 @@ function wporgcd_render_onboarding_view( $filters ) {
 	$event_types  = wporgcd_get_event_types();
 	$cap_date     = wporgcd_get_query_cap_date();
 
-	$date_start       = isset( $filters['registered_date']['start'] ) ? $filters['registered_date']['start'] : null;
-	$date_end         = isset( $filters['registered_date']['end'] ) ? $filters['registered_date']['end'] : null;
-	$include_inactive = ! empty( $filters['include_inactive'] );
+	$date_start          = isset( $filters['registered_date']['start'] ) ? $filters['registered_date']['start'] : null;
+	$date_end            = isset( $filters['registered_date']['end'] ) ? $filters['registered_date']['end'] : null;
+	$include_inactive    = ! empty( $filters['include_inactive'] );
+	$first_event_filter  = isset( $filters['first_event_type'] ) ? (string) $filters['first_event_type'] : '';
+	$exclude_event_types = isset( $filters['exclude_event_types'] ) && is_array( $filters['exclude_event_types'] )
+		? $filters['exclude_event_types']
+		: array();
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 	// $events_table comes from wporgcd_get_table() (internal whitelist) and every
 	// dynamic value is bound via $wpdb->prepare() before being interpolated.
 	// The event_type filter is sourced from wporgcd_get_event_type_filter_sql()
 	// so the noise list (e.g. updated_profile) lives in config.php instead of
-	// being hardcoded across views.
+	// being hardcoded across views — and the per-request `exclude_event_types`
+	// filter stacks on top of it without a second NOT IN predicate.
 	//
 	// event_created_date <= $cap_date keeps the cached view output stable:
 	// today's still-arriving imports never enter the query, and the same
@@ -42,7 +47,7 @@ function wporgcd_render_onboarding_view( $filters ) {
 	// calculations below — so the entire view is keyed off a single closed
 	// day (see includes/cache.php).
 	$where = array(
-		wporgcd_get_event_type_filter_sql(),
+		wporgcd_get_event_type_filter_sql( $exclude_event_types ),
 		$wpdb->prepare( 'event_created_date <= %s', $cap_date ),
 	);
 	if ( $date_start !== null ) {
@@ -107,11 +112,22 @@ function wporgcd_render_onboarding_view( $filters ) {
 			$contributors[ $cid ]['status'] = 'inactive';
 		}
 	}
-	if ( ! $include_inactive ) {
+	// Combined post-rollup filter: drops inactives (when the toggle is off)
+	// and contributors whose first event doesn't match the first_event_type
+	// selector. "First" is determined from the same WHERE-filtered dataset
+	// used above, so the exclude_event_types filter naturally affects which
+	// type is "first" for a given contributor.
+	if ( ! $include_inactive || '' !== $first_event_filter ) {
 		$contributors = array_filter(
 			$contributors,
-			static function ( $c ) {
-				return $c['status'] !== 'inactive';
+			static function ( $c ) use ( $include_inactive, $first_event_filter ) {
+				if ( ! $include_inactive && $c['status'] === 'inactive' ) {
+					return false;
+				}
+				if ( '' !== $first_event_filter && $c['first_event_type'] !== $first_event_filter ) {
+					return false;
+				}
+				return true;
 			}
 		);
 	}
