@@ -26,6 +26,25 @@ function wporgcd_get_reference_start_date() {
 }
 
 /**
+ * Get the latest day for which event data is treated as final.
+ *
+ * Every analytics query caps event_created_date at this date, so
+ * today's still-arriving import data never leaks into a cached
+ * result. Yesterday is assumed complete — under the plugin's
+ * "imports never backfill" contract, any (filters, cap_date) tuple
+ * therefore produces a result that's stable forever, which is what
+ * lets includes/cache.php keep entries with no expiration.
+ *
+ * Pure function of the wall clock (UTC), no DB access — cheap to
+ * call from cache-key composition.
+ *
+ * @return string Yesterday in UTC, formatted as 'Y-m-d'.
+ */
+function wporgcd_get_query_cap_date() {
+	return gmdate( 'Y-m-d', strtotime( '-1 day' ) );
+}
+
+/**
  * Set the reference end date from the events table.
  *
  * Called after each successful event import (see wporgcd_bulk_insert_events())

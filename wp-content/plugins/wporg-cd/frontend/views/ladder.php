@@ -19,10 +19,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function wporgcd_render_ladder_view( $filters ) {
 	global $wpdb;
-	$events_table  = wporgcd_get_table( 'events' );
-	$ladders       = wporgcd_get_ladders();
-	$event_types   = wporgcd_get_event_types();
-	$reference_end = wporgcd_get_reference_end_date();
+	$events_table = wporgcd_get_table( 'events' );
+	$ladders      = wporgcd_get_ladders();
+	$event_types  = wporgcd_get_event_types();
+	// Activity-status thresholds are anchored on $cap_date (yesterday in
+	// UTC) instead of the moving wporgcd_get_reference_end_date() so the
+	// rendered output is stable for a given cache key — see
+	// wporgcd_get_query_cap_date() and includes/cache.php.
+	$cap_date = wporgcd_get_query_cap_date();
 
 	$contrib_start    = isset( $filters['contribution_date']['start'] ) ? $filters['contribution_date']['start'] : null;
 	$contrib_end      = isset( $filters['contribution_date']['end'] ) ? $filters['contribution_date']['end'] : null;
@@ -89,7 +93,7 @@ function wporgcd_render_ladder_view( $filters ) {
 		}
 		$stage = null !== $current ? $current : 'none';
 
-		$days_since = ( strtotime( $reference_end ) - strtotime( $data['last'] ) ) / DAY_IN_SECONDS;
+		$days_since = ( strtotime( $cap_date ) - strtotime( $data['last'] ) ) / DAY_IN_SECONDS;
 		if ( $days_since <= WPORGCD_STATUS_ACTIVE_DAYS ) {
 			$status = 'active';
 		} elseif ( $days_since <= WPORGCD_STATUS_WARNING_DAYS ) {

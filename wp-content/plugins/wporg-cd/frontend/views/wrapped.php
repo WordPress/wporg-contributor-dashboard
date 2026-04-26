@@ -150,6 +150,18 @@ function wporgcd_render_wrapped_view( $filters ) {
 	$period_key = $period['key'];
 	$start_date = $period['start'];
 	$end_date   = $period['end'];
+
+	// Defensive cap: wporgcd_resolve_wrapped_period()'s "last12" already
+	// ends at the last day of the previous full month and year periods
+	// are bounded in the past, so $end_date is normally well below
+	// $cap_date. Clamping here keeps the cache invariant uniform — every
+	// events-table query in the dashboard is bounded by cap_date — even
+	// if the period logic ever changes.
+	$cap_date = wporgcd_get_query_cap_date();
+	if ( strtotime( $end_date ) > strtotime( $cap_date ) ) {
+		$end_date = $cap_date;
+	}
+
 	$span_days  = max( 1, (int) round( ( strtotime( $end_date ) - strtotime( $start_date ) ) / DAY_IN_SECONDS ) + 1 );
 	$month_keys = wporgcd_wrapped_month_keys( $start_date, $end_date );
 

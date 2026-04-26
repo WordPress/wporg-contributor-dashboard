@@ -20,6 +20,7 @@ define( 'WPORGCD_DB_VERSION', '1.2.0' );
 // Shared
 require_once plugin_dir_path( __FILE__ ) . 'includes/database.php';
 require_once plugin_dir_path( __FILE__ ) . 'config.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/cache.php';
 
 // Events
 require_once plugin_dir_path( __FILE__ ) . 'includes/events/schema.php';

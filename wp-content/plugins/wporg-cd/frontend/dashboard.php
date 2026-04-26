@@ -6,7 +6,12 @@
  * filters from $_GET (or falls back to defaults), renders the view, and wraps it
  * in a shared layout with a left nav sidebar, a right filter sidebar, and footer.
  *
- * No caching: every request runs the view's DB queries live.
+ * View output is memoized: each (view, resolved-filters, cap-date, wrapped-period,
+ * config) tuple is cached via includes/cache.php in wp_options (autoload=no, no
+ * expiration). Every events-table query caps event_created_date at "yesterday in
+ * UTC" (see wporgcd_get_query_cap_date()), so cached entries are immutable under
+ * the plugin's "imports never backfill" contract. Bump WPORGCD_CACHE_VERSION to
+ * invalidate every entry after view-rendering changes.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -129,7 +134,22 @@ function wporgcd_resolve_filters( $view_key ) {
 				&& strtotime( $raw_end ) !== false
 				&& strtotime( $raw_start ) <= strtotime( $raw_end );
 
-			$ref_end     = wporgcd_get_reference_end_date();
+			$ref_end = wporgcd_get_reference_end_date();
+
+			// Filters whose schema column is event_created_date are bounded
+			// above by the query cap-date (yesterday in UTC) so each cached
+			// view output stays immutable for a given (filters, day) tuple
+			// — see wporgcd_get_query_cap_date() and includes/cache.php.
+			// For non-events columns the cap doesn't apply and effective_end
+			// stays at ref_end.
+			$effective_end = $ref_end;
+			if ( isset( $def['column'] ) && 'event_created_date' === $def['column'] ) {
+				$cap_date = wporgcd_get_query_cap_date();
+				if ( strtotime( $cap_date ) < strtotime( $ref_end ) ) {
+					$effective_end = $cap_date;
+				}
+			}
+
 			$max_days    = isset( $def['max_days'] ) ? (int) $def['max_days'] : null;
 			$was_clamped = false;
 
@@ -146,6 +166,15 @@ function wporgcd_resolve_filters( $view_key ) {
 					}
 				}
 
+				// Pull end back to effective_end whenever the user's submitted
+				// range crosses it. Belt-and-suspenders for event_created_date
+				// columns (the input's max attribute already caps the picker)
+				// and a no-op for anything that already validates within range.
+				if ( strtotime( $end ) > strtotime( $effective_end ) ) {
+					$end         = $effective_end;
+					$was_clamped = true;
+				}
+
 				$resolved[ $id ] = array(
 					'start'       => $start,
 					'end'         => $end,
@@ -157,16 +186,16 @@ function wporgcd_resolve_filters( $view_key ) {
 				$offset = isset( $def['default_start_offset_days'] ) ? (int) $def['default_start_offset_days'] : null;
 
 				if ( $offset !== null ) {
-					// Anchor the default range N days before the reference end,
-					// spanning forward by default_days (clamped to reference_end).
-					$start = gmdate( 'Y-m-d', strtotime( $ref_end . ' -' . $offset . ' days' ) );
+					// Anchor the default range N days before effective_end,
+					// spanning forward by default_days (clamped to effective_end).
+					$start = gmdate( 'Y-m-d', strtotime( $effective_end . ' -' . $offset . ' days' ) );
 					$end   = gmdate( 'Y-m-d', strtotime( $start . ' +' . $days . ' days' ) );
-					if ( strtotime( $end ) > strtotime( $ref_end ) ) {
-						$end = $ref_end;
+					if ( strtotime( $end ) > strtotime( $effective_end ) ) {
+						$end = $effective_end;
 					}
 				} else {
-					// Default range ends at reference_end and spans back by default_days.
-					$end   = $ref_end;
+					// Default range ends at effective_end and spans back by default_days.
+					$end   = $effective_end;
 					$start = gmdate( 'Y-m-d', strtotime( $end . ' -' . $days . ' days' ) );
 				}
 
@@ -201,9 +230,20 @@ function wporgcd_render_frontend_dashboard() {
 		: 'wrapped';
 	// phpcs:enable WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
-	$filters    = wporgcd_resolve_filters( $view_key );
-	$render_fn  = $views[ $view_key ]['render'];
-	$inner_html = is_callable( $render_fn ) ? $render_fn( $filters ) : '';
+	$filters   = wporgcd_resolve_filters( $view_key );
+	$render_fn = $views[ $view_key ]['render'];
+
+	// View output cache: see includes/cache.php. The cache key incorporates
+	// every input that affects the rendered HTML (filters, cap-date, wrapped
+	// period, config fingerprint, WPORGCD_CACHE_VERSION), so a hit here means
+	// the previous render is byte-identical to what we'd produce now. Misses
+	// fall through to the live render and persist the result.
+	$cache_key  = wporgcd_cache_make_key( $view_key, $filters );
+	$inner_html = wporgcd_cache_get( $cache_key );
+	if ( null === $inner_html ) {
+		$inner_html = is_callable( $render_fn ) ? $render_fn( $filters ) : '';
+		wporgcd_cache_set( $cache_key, $inner_html );
+	}
 
     // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Layout + view output escaped at construction
 	echo wporgcd_render_layout( $view_key, $filters, $inner_html );
@@ -229,10 +269,21 @@ function wporgcd_render_filter_widget( $id, $def, $value, $ref_start, $ref_end )
 			$was_clamped = ! empty( $value['was_clamped'] );
 			$max_days    = isset( $def['max_days'] ) ? (int) $def['max_days'] : null;
 
+			// Mirror the cap-date upper bound from wporgcd_resolve_filters() so
+			// the date picker can't offer days beyond the cached query window.
+			// For non-events columns picker_max stays at ref_end.
+			$picker_max = $ref_end;
+			if ( isset( $def['column'] ) && 'event_created_date' === $def['column'] ) {
+				$cap_date = wporgcd_get_query_cap_date();
+				if ( strtotime( $cap_date ) < strtotime( $picker_max ) ) {
+					$picker_max = $cap_date;
+				}
+			}
+
 			// Bound the end-input calendar so users can't pick a date more than
 			// max_days past the current start. Without JS this only takes effect
 			// after each submit, but it's still a helpful guardrail.
-			$end_max = $ref_end;
+			$end_max = $picker_max;
 			if ( $max_days !== null && $start !== '' && strtotime( $start ) !== false ) {
 				$dynamic_max = gmdate( 'Y-m-d', strtotime( $start . ' +' . $max_days . ' days' ) );
 				if ( strtotime( $dynamic_max ) < strtotime( $end_max ) ) {
@@ -247,7 +298,7 @@ function wporgcd_render_filter_widget( $id, $def, $value, $ref_start, $ref_end )
 						name="<?php echo esc_attr( $id . '_start' ); ?>"
 						value="<?php echo esc_attr( $start ); ?>"
 						min="<?php echo esc_attr( $ref_start ); ?>"
-						max="<?php echo esc_attr( $ref_end ); ?>"
+						max="<?php echo esc_attr( $picker_max ); ?>"
 						aria-label="<?php echo esc_attr( $def['label'] . ' start' ); ?>">
 					<span class="date-range-sep">to</span>
 					<input type="date"

@@ -21,9 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function wporgcd_render_onboarding_view( $filters ) {
 	global $wpdb;
-	$events_table  = wporgcd_get_table( 'events' );
-	$event_types   = wporgcd_get_event_types();
-	$reference_end = wporgcd_get_reference_end_date();
+	$events_table = wporgcd_get_table( 'events' );
+	$event_types  = wporgcd_get_event_types();
+	$cap_date     = wporgcd_get_query_cap_date();
 
 	$date_start       = isset( $filters['registered_date']['start'] ) ? $filters['registered_date']['start'] : null;
 	$date_end         = isset( $filters['registered_date']['end'] ) ? $filters['registered_date']['end'] : null;
@@ -35,7 +35,16 @@ function wporgcd_render_onboarding_view( $filters ) {
 	// The event_type filter is sourced from wporgcd_get_event_type_filter_sql()
 	// so the noise list (e.g. updated_profile) lives in config.php instead of
 	// being hardcoded across views.
-	$where = array( wporgcd_get_event_type_filter_sql() );
+	//
+	// event_created_date <= $cap_date keeps the cached view output stable:
+	// today's still-arriving imports never enter the query, and the same
+	// $cap_date anchors the activity-status and 30-day-new-contributor
+	// calculations below — so the entire view is keyed off a single closed
+	// day (see includes/cache.php).
+	$where = array(
+		wporgcd_get_event_type_filter_sql(),
+		$wpdb->prepare( 'event_created_date <= %s', $cap_date ),
+	);
 	if ( $date_start !== null ) {
 		$where[] = $wpdb->prepare( 'contributor_created_date >= %s', $date_start );
 	}
@@ -84,8 +93,10 @@ function wporgcd_render_onboarding_view( $filters ) {
 	}
 
 	// Compute status per contributor (using the WPORGCD_STATUS_* thresholds
-	// from config.php) and apply the include_inactive filter in PHP.
-	$reference_time = strtotime( $reference_end );
+	// from config.php) and apply the include_inactive filter in PHP. The
+	// time anchor is $cap_date so status thresholds advance one full day
+	// at a time, matching the cache-key cadence.
+	$reference_time = strtotime( $cap_date );
 	foreach ( $contributors as $cid => $c ) {
 		$days = ( $reference_time - strtotime( $c['last_activity'] ) ) / DAY_IN_SECONDS;
 		if ( $days <= WPORGCD_STATUS_ACTIVE_DAYS ) {
@@ -117,7 +128,7 @@ function wporgcd_render_onboarding_view( $filters ) {
 	$first_event_counts    = array();
 	$time_to_first_total   = 0.0;
 	$time_to_first_count   = 0;
-	$thirty_days_ago       = gmdate( 'Y-m-d', strtotime( $reference_end . ' -30 days' ) );
+	$thirty_days_ago       = gmdate( 'Y-m-d', strtotime( $cap_date . ' -30 days' ) );
 	$new_contributors_30d  = 0;
 
 	foreach ( $contributors as $c ) {
