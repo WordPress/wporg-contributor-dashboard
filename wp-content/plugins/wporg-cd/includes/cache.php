@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * any change to view rendering output that shouldn't be served
  * from a previously-cached version.
  */
-define( 'WPORGCD_CACHE_VERSION', '1' );
+define( 'WPORGCD_CACHE_VERSION', '2' );
 
 /**
  * Look up a cached view-render result.
@@ -77,6 +77,12 @@ function wporgcd_cache_set( $key, $value ) {
  * types, ladders, status thresholds). Anything outside this list —
  * e.g. UI markup — must be invalidated by bumping
  * WPORGCD_CACHE_VERSION instead.
+ *
+ * Custom (URL-supplied) ladders need no special handling here:
+ * wporgcd_get_ladders() returns the resolved structure (default OR
+ * a validated `?ladder=` payload), so its JSON-encoded form below
+ * naturally produces a distinct `cfg` md5 per ladder shape — each
+ * shareable link therefore gets its own cache entries.
  *
  * reference_end is intentionally NOT included: its effect on filter
  * defaults flows through $filters, and its effect on the wrapped

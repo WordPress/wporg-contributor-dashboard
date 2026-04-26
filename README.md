@@ -93,20 +93,29 @@ Filters are declared per view in the view registry and rendered in a right-hand 
 Current filters per view:
 
 - **Wrapped** — no sidebar filter. Period is selected in-page via `?period=` (`last12` default, or a fully completed calendar year like `2024`). Resolution lives in [`wporgcd_resolve_wrapped_period()`](wp-content/plugins/wporg-cd/frontend/views/wrapped.php) and only accepts year values whose Jan 1–Dec 31 fits inside `[reference_start, reference_end]`; anything else falls back to `last12`.
-- **Ladder** — `registered_date` (`date_range` on `events.contributor_created_date`, default last 90 days starting one year ago, max 90), `contribution_date` (`date_range` on `events.event_created_date`, default last 365 days, max 365), `include_inactive`.
+- **Ladder** — `registered_date` (`date_range` on `events.contributor_created_date`, default last 180 days starting one year ago, max 180), `contribution_date` (`date_range` on `events.event_created_date`, default last 730 days, max 730), `include_inactive`.
 - **Onboarding** — `registered_date` (same shape as Ladder's), `include_inactive` (`checkbox`, default off — applied in PHP after aggregating events per contributor).
 
 ### Query Params
 
 - `?view=<id>` — Select a view (default `wrapped`)
 - `?period=last12|YYYY` — Wrapped period (default `last12`; `YYYY` only accepted for fully completed calendar years inside the available data range)
-- `?registered_date_start=YYYY-MM-DD&registered_date_end=YYYY-MM-DD` — User-registered-date filter (Onboarding, Ladder; max range: 90 days)
-- `?contribution_date_start=YYYY-MM-DD&contribution_date_end=YYYY-MM-DD` — Contribution-date filter (Ladder; max range: 365 days)
+- `?registered_date_start=YYYY-MM-DD&registered_date_end=YYYY-MM-DD` — User-registered-date filter (Onboarding, Ladder; max range: 180 days)
+- `?contribution_date_start=YYYY-MM-DD&contribution_date_end=YYYY-MM-DD` — Contribution-date filter (Ladder; max range: 730 days)
 - `?include_inactive=1` — Include inactive contributors (Onboarding, Ladder)
+- `?ladder=<base64url-json>` — Custom ladder definition for the Ladder view (overrides the default from `wporgcd_get_default_ladders()`). Encoded payload is decoded + validated by [`wporgcd_get_ladders()`](wp-content/plugins/wporg-cd/includes/ladders.php); invalid values silently fall back to the default. Limits: ≤ 20 steps, ≤ 50 requirements per step, ≤ 32 KB raw payload.
 
 ## Configuration
 
-Event types and ladders are defined in [wp-content/plugins/wporg-cd/config.php](wp-content/plugins/wporg-cd/config.php) — plain PHP arrays returned from helper functions. Edit it to add, rename, or remove entries; ladders are evaluated in declaration order. Changes take effect on the next page load.
+Event types and the **default** ladder are defined in [wp-content/plugins/wporg-cd/config.php](wp-content/plugins/wporg-cd/config.php) — plain PHP arrays returned from helper functions. Edit it to add, rename, or remove entries; ladders are evaluated in declaration order. Changes take effect on the next page load.
+
+### Custom ladders (shareable URLs)
+
+Anyone visiting the Ladder view can click **Customize ladder** to open an inline editor (rename, reorder, add/remove steps; add/remove activity requirements per step). Hitting **Apply** navigates to a URL whose `?ladder=` query parameter encodes the new structure as base64url-JSON; copying the resulting URL is the share mechanism.
+
+The override is stateless — there is no server-side write. The resolver in [wp-content/plugins/wporg-cd/includes/ladders.php](wp-content/plugins/wporg-cd/includes/ladders.php) decodes + validates the payload on every request; anything malformed falls back to the default with no error UI. Validation drops unknown event-type slugs, requirements with non-positive `min`, and excluded event types so a partially-stale link still renders something sensible.
+
+Cache keys naturally diverge per ladder: [`wporgcd_cache_make_key()`](wp-content/plugins/wporg-cd/includes/cache.php) JSON-encodes the resolved ladder into the `cfg` md5, so each unique ladder shape × day produces its own cache entry.
 
 ### Excluding event types from analytics
 

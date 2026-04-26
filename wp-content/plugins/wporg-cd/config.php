@@ -117,11 +117,16 @@ function wporgcd_get_event_type_filter_sql() {
 }
 
 /**
- * Get configured ladders.
+ * Get the default ladder definition.
+ *
+ * Single source of truth for the canonical ladder shipped with the plugin.
+ * The active ladder for any given request is resolved by wporgcd_get_ladders()
+ * in includes/ladders.php — that function returns the URL-supplied custom
+ * ladder when present (and valid), or this default otherwise.
  *
  * @return array Ladders keyed by ID, in evaluation order.
  */
-function wporgcd_get_ladders() {
+function wporgcd_get_default_ladders() {
 	return array(
 		'connect'    => array(
 			'title'        => 'Connect',
@@ -272,43 +277,6 @@ function wporgcd_get_ladders() {
 				array(
 					'event_type' => 'wordcamp_mentor_assign',
 					'min'        => 1,
-				),
-			),
-		),
-		'lead'       => array(
-			'title'        => 'Lead',
-			'requirements' => array(
-				array(
-					'event_type' => 'forum_reply_create',
-					'min'        => 500,
-				),
-				array(
-					'event_type' => 'glotpress_translation_approved',
-					'min'        => 1000,
-				),
-				array(
-					'event_type' => 'glotpress_translation_reviewed',
-					'min'        => 500,
-				),
-				array(
-					'event_type' => 'blog_post_create',
-					'min'        => 25,
-				),
-				array(
-					'event_type' => 'wordcamp_organizer_add',
-					'min'        => 1,
-				),
-				array(
-					'event_type' => 'wordcamp_speaker_add',
-					'min'        => 5,
-				),
-				array(
-					'event_type' => 'wordcamp_mentor_assign',
-					'min'        => 2,
-				),
-				array(
-					'event_type' => 'workshop_presenter_assign',
-					'min'        => 3,
 				),
 			),
 		),

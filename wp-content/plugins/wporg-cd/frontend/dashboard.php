@@ -43,16 +43,16 @@ function wporgcd_get_views() {
 					'type'                      => 'date_range',
 					'label'                     => 'User registered date',
 					'column'                    => 'registered_date',
-					'default_days'              => 90,
+					'default_days'              => 180,
 					'default_start_offset_days' => 365,
-					'max_days'                  => 90,
+					'max_days'                  => 180,
 				),
 				'contribution_date' => array(
 					'type'         => 'date_range',
 					'label'        => 'Contribution date',
 					'column'       => 'event_created_date',
-					'default_days' => 365,
-					'max_days'     => 365,
+					'default_days' => 730,
+					'max_days'     => 730,
 				),
 				'include_inactive'  => array(
 					'type'    => 'checkbox',
@@ -69,9 +69,9 @@ function wporgcd_get_views() {
 					'type'                      => 'date_range',
 					'label'                     => 'User registered date',
 					'column'                    => 'registered_date',
-					'default_days'              => 90,
+					'default_days'              => 180,
 					'default_start_offset_days' => 365,
-					'max_days'                  => 90,
+					'max_days'                  => 180,
 				),
 				'include_inactive' => array(
 					'type'    => 'checkbox',
@@ -91,15 +91,23 @@ function wporgcd_get_views() {
 /**
  * Build a URL to the given view, preserving all current $_GET params.
  *
- * @param string $view Target view id.
+ * Pass keys via $drop to strip them from the rebuilt URL — used e.g. by the
+ * ladder view's "Reset to default" link, which navigates back to the same
+ * view without the `?ladder=` override.
+ *
+ * @param string   $view Target view id.
+ * @param string[] $drop Optional list of $_GET keys to omit from the result.
  * @return string Relative URL with query string.
  */
-function wporgcd_build_view_url( $view ) {
+function wporgcd_build_view_url( $view, $drop = array() ) {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only URL construction
 	$params = isset( $_GET ) && is_array( $_GET ) ? $_GET : array();
     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Values are flattened to strings below via http_build_query
 	$params['view'] = $view;
-	$pairs          = array();
+	foreach ( (array) $drop as $key ) {
+		unset( $params[ $key ] );
+	}
+	$pairs = array();
 	foreach ( $params as $k => $v ) {
 		if ( is_scalar( $v ) ) {
 			$pairs[ sanitize_key( (string) $k ) ] = (string) $v;
@@ -602,7 +610,6 @@ section { margin-bottom: 32px; }
 .bar { height: 100%; background: var(--blue); border-radius: 3px; }
 .funnel { display: flex; flex-direction: column; gap: 8px; }
 .funnel-row { display: flex; align-items: center; gap: 12px; }
-.funnel-row-total { padding-bottom: 14px; margin-bottom: 6px; border-bottom: 1px solid var(--border); }
 .funnel-row-total .funnel-lbl { font-weight: 600; }
 .funnel-lbl { font-size: 14px; font-weight: 500; text-align: right; }
 .funnel-lbl-wrap { width: 120px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
@@ -658,6 +665,50 @@ dialog.wporgcd-modal .modal-body p strong { color: var(--text); }
 .modal-id-list a { display: inline-block; padding: 3px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; font-size: 12px; color: var(--text); text-decoration: none; transition: border-color 0.15s, color 0.15s, background 0.15s; }
 .modal-id-list a:hover { border-color: var(--blue); color: var(--blue); background: var(--card); }
 .modal-id-list a:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* Ladder card header: the funnel card's title row hosts the H2, an
+	optional fingerprint badge + reset link (when ?ladder= is active),
+	and the modal trigger that opens the editor. The badge is purely
+	informational — it matches the cache-key fingerprint, so two share
+	links pointing at the same structure show the same #abc12345. */
+.ladder-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.ladder-card-header h2 { margin-bottom: 0; flex: 1 1 auto; min-width: 0; }
+.ladder-badge { display: inline-flex; align-items: center; padding: 3px 10px; background: #eef1fd; color: var(--blue); border: 1px solid #c5cff5; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.ladder-reset { color: var(--muted); font-size: 13px; text-decoration: none; white-space: nowrap; transition: color 0.15s; }
+.ladder-reset:hover { color: var(--blue); text-decoration: underline; }
+.ladder-customize-link.modal-trigger { border: 1px solid var(--border); background: var(--card); color: var(--muted); padding: 5px 12px; border-radius: 6px; font-size: 12px; transition: border-color 0.15s, color 0.15s; }
+.ladder-customize-link.modal-trigger:hover { border-color: var(--blue); color: var(--blue); text-decoration: none; }
+
+/* Ladder editor (rendered inside <dialog id="modal-ladder-editor">). The
+	IIFE in wporgcd_render_layout() owns the live state and re-hydrates from
+	<script id="wporgcd-ladder-editor-data"> on every dialog open. Sizing
+	tokens stay in sync with .filter / .funnel-row to feel native. */
+dialog.wporgcd-modal.wporgcd-modal-wide { width: min(720px, 92vw); }
+.ladder-btn { background: var(--blue); color: #fff; border: 1px solid var(--blue); padding: 7px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+.ladder-btn:hover { background: var(--blue-hover); border-color: var(--blue-hover); }
+.ladder-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.ladder-btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+.ladder-btn-ghost:hover { background: var(--bg); color: var(--text); border-color: var(--border); }
+.ladder-editor-help { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0 0 16px; }
+.ladder-editor-noscript { font-size: 13px; color: var(--muted); padding: 12px 0; }
+.ladder-editor-steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.ladder-editor-step { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.ladder-editor-step-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.ladder-editor-step-header input[type="text"] { flex: 1; min-width: 0; font: inherit; font-size: 14px; font-weight: 600; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text); }
+.ladder-editor-step-header input[type="text"]:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 2px rgba(56, 88, 233, 0.15); }
+.ladder-editor-icon-btn { background: var(--card); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 13px; cursor: pointer; line-height: 1; min-width: 28px; }
+.ladder-editor-icon-btn:hover { color: var(--blue); border-color: var(--blue); }
+.ladder-editor-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ladder-editor-icon-btn.danger:hover { color: var(--red); border-color: var(--red); }
+.ladder-editor-reqs { display: flex; flex-direction: column; gap: 6px; }
+.ladder-editor-req { display: flex; align-items: center; gap: 8px; }
+.ladder-editor-req select { flex: 1; min-width: 0; font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text); }
+.ladder-editor-req input[type="number"] { width: 90px; font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text); }
+.ladder-editor-req .ladder-editor-req-label { font-size: 12px; color: var(--muted); }
+.ladder-editor-step-footer { margin-top: 8px; }
+.ladder-editor-actions { display: flex; align-items: center; gap: 10px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.ladder-editor-actions-spacer { flex: 1 1 auto; }
+.ladder-editor-error { font-size: 12px; color: var(--red); }
 
 .view-placeholder { text-align: center; padding: 48px 24px; }
 .view-placeholder h2 { margin-bottom: 12px; }
@@ -867,6 +918,238 @@ body.is-navigating, body.is-navigating a, body.is-navigating button { cursor: pr
 				e.target.close();
 			}
 		});
+
+		// Ladder editor: only initializes on the Ladder view, where the
+		// view markup includes the modal-trigger buttons, the
+		// <dialog id="modal-ladder-editor">, and the
+		// <script id="wporgcd-ladder-editor-data"> JSON payload (server-side,
+		// kept in sync with PHP-side validation in includes/ladders.php).
+		// The modal is opened/closed by the generic data-modal-target /
+		// data-modal-close handler above; this IIFE just owns the editor
+		// state, re-hydrates on every open, and handles Apply (encode +
+		// navigate). Cancel is just a data-modal-close button — no JS here.
+		// Apply navigates to ?view=ladder&...&ladder=<base64url-json>; the
+		// resolver in includes/ladders.php then decodes + validates and the
+		// cache-fingerprint in includes/cache.php hashes the result.
+		(function () {
+			var dataEl = document.getElementById('wporgcd-ladder-editor-data');
+			var stepsEl = document.querySelector('[data-role="ladder-editor-steps"]');
+			var dialogEl = document.getElementById('modal-ladder-editor');
+			if (!dataEl || !stepsEl || !dialogEl) return;
+
+			var cfg;
+			try { cfg = JSON.parse(dataEl.textContent); } catch (_) { return; }
+			if (!cfg || !cfg.ladders || !cfg.eventTypes || !cfg.limits) return;
+
+			var limits = cfg.limits;
+			var eventTypeEntries = Object.keys(cfg.eventTypes).map(function (id) {
+				return { id: id, title: String(cfg.eventTypes[id]) };
+			});
+
+			// Working state: kept as an array of { id, title, requirements }
+			// (matching the validated server shape, but with array order so
+			// reorder is just splice + re-render).
+			var state = [];
+			function loadFromConfig() {
+				state = Object.keys(cfg.ladders).map(function (lid) {
+					var step = cfg.ladders[lid] || {};
+					var reqs = Array.isArray(step.requirements) ? step.requirements : [];
+					return {
+						id: String(lid),
+						title: String(step.title || lid),
+						requirements: reqs.map(function (r) {
+							return { event_type: String(r.event_type || ''), min: parseInt(r.min, 10) || 1 };
+						})
+					};
+				});
+			}
+			loadFromConfig();
+
+			function el(tag, attrs, children) {
+				var node = document.createElement(tag);
+				if (attrs) {
+					Object.keys(attrs).forEach(function (k) {
+						if (k === 'className') node.className = attrs[k];
+						else if (k === 'text') node.textContent = attrs[k];
+						else if (k.indexOf('data-') === 0 || k === 'role' || k === 'aria-label' || k === 'title' || k === 'type' || k === 'min' || k === 'max' || k === 'maxLength' || k === 'value' || k === 'placeholder') node.setAttribute(k, attrs[k]);
+						else node[k] = attrs[k];
+					});
+				}
+				(children || []).forEach(function (c) {
+					if (c == null) return;
+					node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+				});
+				return node;
+			}
+
+			function buildEventTypeSelect(selectedId) {
+				var sel = el('select', { 'aria-label': 'Event type' });
+				// Lead with a placeholder so unknown ids surface visibly
+				// (the resolver would silently drop them anyway, but we want
+				// the UI to make the user re-pick rather than ship a broken
+				// requirement upstream).
+				if (!selectedId || !cfg.eventTypes.hasOwnProperty(selectedId)) {
+					sel.appendChild(el('option', { value: '', text: '— Select event —' }));
+				}
+				eventTypeEntries.forEach(function (et) {
+					var opt = el('option', { value: et.id, text: et.title });
+					if (et.id === selectedId) opt.selected = true;
+					sel.appendChild(opt);
+				});
+				return sel;
+			}
+
+			function render() {
+				stepsEl.innerHTML = '';
+				if (state.length === 0) {
+					stepsEl.appendChild(el('p', { className: 'ladder-editor-noscript', text: 'No steps yet — add one to start customizing.' }));
+				}
+				state.forEach(function (step, stepIdx) {
+					var titleInput = el('input', { type: 'text', value: step.title, maxLength: String(limits.maxTitleLen), 'aria-label': 'Step title' });
+					titleInput.addEventListener('input', function () { step.title = titleInput.value; });
+
+					var upBtn = el('button', { type: 'button', className: 'ladder-editor-icon-btn', 'aria-label': 'Move step up', title: 'Move up', text: '\u2191' });
+					if (stepIdx === 0) upBtn.disabled = true;
+					upBtn.addEventListener('click', function () {
+						if (stepIdx === 0) return;
+						state.splice(stepIdx - 1, 0, state.splice(stepIdx, 1)[0]);
+						render();
+					});
+
+					var downBtn = el('button', { type: 'button', className: 'ladder-editor-icon-btn', 'aria-label': 'Move step down', title: 'Move down', text: '\u2193' });
+					if (stepIdx === state.length - 1) downBtn.disabled = true;
+					downBtn.addEventListener('click', function () {
+						if (stepIdx === state.length - 1) return;
+						state.splice(stepIdx + 1, 0, state.splice(stepIdx, 1)[0]);
+						render();
+					});
+
+					var removeBtn = el('button', { type: 'button', className: 'ladder-editor-icon-btn danger', 'aria-label': 'Remove step', title: 'Remove step', text: '\u00d7' });
+					removeBtn.addEventListener('click', function () {
+						state.splice(stepIdx, 1);
+						render();
+					});
+
+					var stepHeader = el('div', { className: 'ladder-editor-step-header' }, [titleInput, upBtn, downBtn, removeBtn]);
+
+					var reqsList = el('div', { className: 'ladder-editor-reqs' });
+					step.requirements.forEach(function (req, reqIdx) {
+						var sel = buildEventTypeSelect(req.event_type);
+						sel.addEventListener('change', function () { req.event_type = sel.value; });
+
+						var minInput = el('input', { type: 'number', min: '1', max: String(limits.maxMin), value: String(req.min), 'aria-label': 'Minimum count' });
+						minInput.addEventListener('input', function () {
+							var v = parseInt(minInput.value, 10);
+							req.min = isNaN(v) ? 0 : v;
+						});
+
+						var label = el('span', { className: 'ladder-editor-req-label', text: '\u2265' });
+						var rm = el('button', { type: 'button', className: 'ladder-editor-icon-btn danger', 'aria-label': 'Remove requirement', title: 'Remove requirement', text: '\u00d7' });
+						rm.addEventListener('click', function () {
+							step.requirements.splice(reqIdx, 1);
+							render();
+						});
+
+						reqsList.appendChild(el('div', { className: 'ladder-editor-req' }, [sel, label, minInput, rm]));
+					});
+
+					var addReqBtn = el('button', { type: 'button', className: 'ladder-btn ladder-btn-ghost', text: 'Add requirement' });
+					addReqBtn.addEventListener('click', function () {
+						if (step.requirements.length >= limits.maxReqsPerStep) return;
+						step.requirements.push({ event_type: '', min: 1 });
+						render();
+					});
+
+					var stepFooter = el('div', { className: 'ladder-editor-step-footer' }, [addReqBtn]);
+					stepsEl.appendChild(el('div', { className: 'ladder-editor-step' }, [stepHeader, reqsList, stepFooter]));
+				});
+			}
+
+			function setError(msg) {
+				var errEl = document.querySelector('[data-role="ladder-editor-error"]');
+				if (!errEl) return;
+				if (!msg) { errEl.hidden = true; errEl.textContent = ''; return; }
+				errEl.hidden = false;
+				errEl.textContent = msg;
+			}
+
+			function buildPayload() {
+				if (state.length === 0) return { error: 'Add at least one step.' };
+				if (state.length > limits.maxSteps) return { error: 'Too many steps (max ' + limits.maxSteps + ').' };
+				var out = {};
+				var seen = {};
+				for (var i = 0; i < state.length; i++) {
+					var step = state[i];
+					var title = String(step.title || '').trim();
+					if (!title) return { error: 'Every step needs a title.' };
+					if (title.length > limits.maxTitleLen) title = title.slice(0, limits.maxTitleLen);
+					var slug = title.toLowerCase().replace(/[^a-z0-9_\-]+/g, '-').replace(/(^-+|-+$)/g, '');
+					if (!slug) slug = 'step';
+					var base = slug, n = 2;
+					while (seen[slug]) { slug = base + '-' + n; n++; }
+					seen[slug] = true;
+					var reqs = [];
+					for (var j = 0; j < step.requirements.length; j++) {
+						var r = step.requirements[j];
+						if (!r.event_type || !cfg.eventTypes.hasOwnProperty(r.event_type)) continue;
+						var min = parseInt(r.min, 10);
+						if (!min || min < 1 || min > limits.maxMin) continue;
+						reqs.push({ event_type: r.event_type, min: min });
+					}
+					out[slug] = { title: title, requirements: reqs };
+				}
+				return { ladders: out };
+			}
+
+			// base64url encoding to match wporgcd_encode_ladders() in
+			// includes/ladders.php — same JSON, same alphabet, no padding.
+			function encodeBase64Url(str) {
+				var b64 = btoa(unescape(encodeURIComponent(str)));
+				return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+			}
+
+			function applyChanges() {
+				setError('');
+				var built = buildPayload();
+				if (built.error) { setError(built.error); return; }
+				var encoded = encodeBase64Url(JSON.stringify(built.ladders));
+				var url = new URL(window.location.href);
+				url.searchParams.set('view', 'ladder');
+				url.searchParams.set('ladder', encoded);
+				window.location.assign(url.toString());
+			}
+
+			// Initial render so the dialog's body has content even if some
+			// caller invokes showModal() outside the trigger path.
+			render();
+
+			// Re-hydrate state from cfg every time the dialog opens so a
+			// canceled-then-reopened session starts clean (rather than
+			// silently retaining the last unsaved edits). Capture phase so
+			// this runs before the generic showModal() handler above.
+			document.addEventListener('click', function (e) {
+				var t = e.target.closest('[data-modal-target="modal-ladder-editor"]');
+				if (!t) return;
+				setError('');
+				loadFromConfig();
+				render();
+			}, true);
+
+			// Editor-only actions: add-step + apply. Open/close + cancel are
+			// handled by the generic modal trigger/close handler above.
+			document.addEventListener('click', function (e) {
+				var t = e.target.closest('[data-role]');
+				if (!t || !dialogEl.contains(t)) return;
+				var role = t.getAttribute('data-role');
+				if (role === 'ladder-add-step') {
+					if (state.length >= limits.maxSteps) { setError('Max ' + limits.maxSteps + ' steps.'); return; }
+					state.push({ id: '', title: 'New step', requirements: [] });
+					render();
+				} else if (role === 'ladder-apply') {
+					applyChanges();
+				}
+			});
+		})();
 
 		// Top progress bar: shows an animated bar at the top of the page
 		// during full-page navigations (link clicks + filter form submits).

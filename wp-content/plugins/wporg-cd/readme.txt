@@ -23,7 +23,8 @@ The ladder is behavior-based and describes patterns of participation over time. 
 = Features =
 
 * Import contributor events via REST API
-* Configure event types and progression ladders in PHP
+* Configure event types and the default progression ladder in PHP
+* In-page ladder editor with shareable URLs (no server-side state)
 * Automatic status tracking (active/warning/inactive)
 * Ladder funnel visualization
 
@@ -55,7 +56,10 @@ Status is calculated live by each view, relative to the reference date (the newe
 
 = How do I change the ladders? =
 
-Edit the array returned by `wporgcd_get_ladders()` in `wp-content/plugins/wporg-cd/config.php`. Changes take effect on the next page load — there's nothing to regenerate.
+Two paths, depending on scope:
+
+* **Default ladder (everyone):** edit the array returned by `wporgcd_get_default_ladders()` in `wp-content/plugins/wporg-cd/config.php`. Changes take effect on the next page load.
+* **Per-link customization:** click **Customize ladder** on the Ladder view to edit titles, reorder steps, and add or remove activity requirements. Hitting Apply navigates to a URL whose `?ladder=` parameter encodes your structure; copy the URL to share. Invalid or oversized payloads fall back to the default silently.
 
 = Is there a REST API? =
 
