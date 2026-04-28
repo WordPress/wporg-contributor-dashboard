@@ -42,9 +42,79 @@ function wporgcd_render_admin_page() {
 			<a href="<?php echo esc_url( home_url() ); ?>" class="button button-primary" target="_blank">View Dashboard &rarr;</a>
 		</p>
 
+		<h2 style="margin-top: 40px;">Event Counts (last 3 months)</h2>
+		<?php wporgcd_render_event_type_counts_section(); ?>
+
 		<h2 style="margin-top: 40px;">Recent Events (last 30 days)</h2>
 		<?php wporgcd_render_recent_events_section(); ?>
 	</div>
+	<?php
+}
+
+/**
+ * Render the "events grouped by type, last 3 months" table.
+ *
+ * Counts come straight from the events table — wporgcd_get_event_types() is
+ * consulted only to render a friendly title for each row, so unknown or
+ * legacy slugs still surface here under their raw key. The 3-month window
+ * is anchored to the reference end date, matching the rest of the plugin.
+ */
+function wporgcd_render_event_type_counts_section() {
+	global $wpdb;
+	$events_table = wporgcd_get_table( 'events' );
+
+	$reference_end = wporgcd_get_reference_end_date();
+	$cutoff        = gmdate( 'Y-m-d H:i:s', strtotime( '-3 months', strtotime( $reference_end ) ) );
+
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe from wporgcd_get_table()
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT event_type, COUNT(*) AS cnt
+		 FROM $events_table
+		 WHERE event_created_date >= %s
+		 GROUP BY event_type
+		 ORDER BY cnt DESC, event_type ASC",
+			$cutoff
+		)
+	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+	if ( empty( $rows ) ) {
+		echo '<div class="notice notice-info inline"><p>No events recorded in the last 3 months.</p></div>';
+		return;
+	}
+
+	$event_types = wporgcd_get_event_types();
+	$grand_total = 0;
+	foreach ( $rows as $row ) {
+		$grand_total += (int) $row->cnt;
+	}
+	?>
+	<p class="description">
+		<?php echo number_format( $grand_total ); ?> events across <?php echo number_format( count( $rows ) ); ?> event type<?php echo count( $rows ) === 1 ? '' : 's'; ?>, since <code><?php echo esc_html( substr( $cutoff, 0, 10 ) ); ?></code>.
+	</p>
+	<table class="wp-list-table widefat fixed striped">
+		<thead>
+			<tr>
+				<th style="width: 70%;">Event Type</th>
+				<th>Count</th>
+			</tr>
+		</thead>
+		<tbody>
+			<?php
+			foreach ( $rows as $row ) :
+				$title = isset( $event_types[ $row->event_type ] ) ? $event_types[ $row->event_type ]['title'] : $row->event_type;
+				?>
+				<tr>
+					<td>
+						<?php echo esc_html( $title ); ?>
+						<br><code><?php echo esc_html( $row->event_type ); ?></code>
+					</td>
+					<td><?php echo number_format( (int) $row->cnt ); ?></td>
+				</tr>
+			<?php endforeach; ?>
+		</tbody>
+	</table>
 	<?php
 }
 
