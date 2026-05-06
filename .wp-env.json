@@ -2,5 +2,7 @@
 	"core": null,
 	"plugins": [
 		"./wp-content/plugins/wporg-cd"
-	]
+	],
+	"port": 20261,
+	"testsEnvironment": false
 }

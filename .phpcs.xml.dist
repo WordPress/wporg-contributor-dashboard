@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<ruleset name="wporg-cd">
+    <description>Coding standards for the WordPress Contributor Dashboard plugin.</description>
+
+    <file>wp-content/plugins/wporg-cd/</file>
+
+    <arg value="ps"/>
+    <arg name="colors"/>
+    <arg name="extensions" value="php"/>
+    <arg name="cache" value=".phpcs.cache"/>
+    <arg name="parallel" value="8"/>
+
+    <rule ref="WordPress">
+        <!--
+            Stylistic rules intentionally not enforced for this project.
+            Each exclusion below documents the reasoning so re-enabling later
+            is a deliberate choice, not an accident.
+        -->
+
+        <!-- The codebase does not use @package tags; file-level docblocks already document intent. -->
+        <exclude name="Squiz.Commenting.FileComment.MissingPackageTag"/>
+
+        <!-- Yoda conditions are a contentious WP-only style. The codebase consistently uses non-Yoda; switching would churn many lines for no readability gain. -->
+        <exclude name="WordPress.PHP.YodaConditions"/>
+
+        <!-- Inline-comment punctuation is a style nit; the codebase deliberately uses concise, consistent inline comments without trailing periods. -->
+        <exclude name="Squiz.Commenting.InlineComment.InvalidEndChar"/>
+
+        <!-- @param description punctuation is a style nit; descriptions are already self-evidently terminated. -->
+        <exclude name="Squiz.Commenting.FunctionComment.ParamCommentFullStop"/>
+
+        <!-- Capitalising the first word of a long doc description is a style nit, not a correctness signal. -->
+        <exclude name="Generic.Commenting.DocComment.LongNotCapital"/>
+
+        <!--
+            View-render functions and hook callbacks in this codebase share a
+            consistent signature ($filters / $request / etc.) even when an
+            individual implementation does not use every parameter. That
+            uniformity has more value than the rule's checks here.
+        -->
+        <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter"/>
+    </rule>
+
+    <rule ref="PHPCompatibilityWP"/>
+
+    <config name="testVersion" value="7.4-"/>
+    <config name="minimum_wp_version" value="6.5"/>
+</ruleset>
