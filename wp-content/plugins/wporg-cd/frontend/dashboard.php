@@ -30,12 +30,12 @@ add_action( 'template_redirect', 'wporgcd_render_frontend_dashboard' );
  */
 function wporgcd_get_views() {
 	return array(
-		'wrapped'    => array(
+		'wrapped' => array(
 			'title'   => 'Wrapped',
 			'render'  => 'wporgcd_render_wrapped_view',
 			'filters' => array(),
 		),
-		'ladder'     => array(
+		'ladder'  => array(
 			'title'   => 'Ladder',
 			'render'  => 'wporgcd_render_ladder_view',
 			'filters' => array(
@@ -104,7 +104,7 @@ function wporgcd_get_views() {
 		// ),
 		// ),
 		// ),
-		'cohorts'    => array(
+		'cohorts' => array(
 			'title'   => 'Cohorts',
 			'render'  => 'wporgcd_render_cohorts_view',
 			'filters' => array(
@@ -429,9 +429,9 @@ function wporgcd_render_filter_widget( $id, $def, $value, $ref_start, $ref_end )
 			// the global exclusion list, sorted by display title. Same
 			// catalog the ladder editor uses (frontend/views/ladder.php),
 			// so users see the same vocabulary across the dashboard.
-			$catalog       = wporgcd_get_event_types();
-			$excluded_set  = array_flip( wporgcd_get_excluded_event_types() );
-			$type_options  = array();
+			$catalog      = wporgcd_get_event_types();
+			$excluded_set = array_flip( wporgcd_get_excluded_event_types() );
+			$type_options = array();
 			foreach ( $catalog as $et_id => $et ) {
 				if ( isset( $excluded_set[ $et_id ] ) ) {
 					continue;
@@ -500,7 +500,7 @@ function wporgcd_render_filter_sidebar( $view_key, $schema, $resolved ) {
 	// input so Apply preserves the custom ladder.
 	$ladder_passthrough = '';
 	if ( 'ladder' === $view_key && function_exists( 'wporgcd_is_custom_ladder' ) && wporgcd_is_custom_ladder() ) {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- escaped at output below; payload is shape-validated upstream by wporgcd_is_custom_ladder().
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- escaped at output below; payload is shape-validated upstream by wporgcd_is_custom_ladder().
 		$ladder_passthrough = (string) wp_unslash( $_GET['ladder'] );
 	}
 
@@ -649,6 +649,7 @@ function wporgcd_render_layout( $active_view, $filters, $inner_html ) {
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title><?php echo esc_html( $view_title ); ?> &ndash; WordPress Contributor Dashboard</title>
+		<?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- standalone HTML document; no wp_head() to enqueue into. ?>
 		<link rel="stylesheet" href="<?php echo esc_url( plugins_url( 'assets/tom-select/tom-select.css', __FILE__ ) ); ?>">
 		<style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1098,6 +1099,7 @@ body.is-navigating, body.is-navigating a, body.is-navigating button { cursor: pr
 			endif;
 			?>
 		</div>
+		<?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- standalone HTML document; no wp_footer() to enqueue into. ?>
 		<script src="<?php echo esc_url( plugins_url( 'assets/tom-select/tom-select.complete.min.js', __FILE__ ) ); ?>" defer></script>
 		<script>
 		// Tom Select enhances the .filter-event-type-* native <select>
