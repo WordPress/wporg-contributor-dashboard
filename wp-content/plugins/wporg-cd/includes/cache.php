@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * any change to view rendering output that shouldn't be served
  * from a previously-cached version.
  */
-define( 'WPORGCD_CACHE_VERSION', '5' );
+define( 'WPORGCD_CACHE_VERSION', '6' );
 
 /**
  * Look up a cached view-render result.

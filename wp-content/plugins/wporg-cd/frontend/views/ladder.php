@@ -205,7 +205,7 @@ function wporgcd_render_ladder_view( $filters ) {
 		} elseif ( $status === 'warning' ) {
 			$status_intro = sprintf(
 				/* translators: 1: active-window threshold, 2: warning-window threshold. */
-				'<p>They are marked <strong>at risk</strong> because their last activity was between %1$d and %2$d days ago.</p>',
+				'<p>They are marked <strong>at risk</strong> because their last activity was between %1$d and %2$d days ago. They may be less active recently and could benefit from outreach or re-engagement.</p>',
 				WPORGCD_STATUS_ACTIVE_DAYS,
 				WPORGCD_STATUS_WARNING_DAYS
 			);
@@ -248,6 +248,29 @@ function wporgcd_render_ladder_view( $filters ) {
 	}
 	asort( $editor_event_types );
 
+	$about_url = wporgcd_build_view_url( 'about' );
+
+	ob_start();
+	?>
+	<p class="ladder-card-help">The Contribution Ladder is a behavior-based, analytical framework for understanding how contributors participate over time. These stages describe patterns of participation, not contribution value. Progression is not required or expected. We added an example of a ladder, but you can change it as needed. <a href="<?php echo esc_url( $about_url ); ?>">Learn more on the About page</a>.</p>
+	<p class="ladder-card-help">Different Make WordPress teams have different contribution activities. Customize the ladder to match your team&rsquo;s context: edit titles, reorder steps, add or remove activity requirements, and adjust thresholds. <strong>Apply</strong> navigates to a shareable URL that encodes your ladder definition &mdash; copy that URL to share.</p>
+	<?php
+	$ladder_help_html = ob_get_clean();
+
+	$inactive_legend = $include_inactive
+		? sprintf(
+			' <strong>Inactive</strong> &mdash; no activity for %1$d+ days (shown when &ldquo;Include inactive users&rdquo; is enabled).',
+			WPORGCD_STATUS_WARNING_DAYS
+		)
+		: '';
+
+	$ladder_legend_html = sprintf(
+		'<p class="ladder-status-legend"><strong>Active</strong> &mdash; last activity within the last %1$d days. <strong>At risk</strong> &mdash; last activity between %1$d and %2$d days ago; may benefit from outreach or re-engagement.%3$s</p>',
+		WPORGCD_STATUS_ACTIVE_DAYS,
+		WPORGCD_STATUS_WARNING_DAYS,
+		$inactive_legend
+	);
+
 	ob_start();
 	?>
 	<?php if ( empty( $ladders ) ) : ?>
@@ -257,13 +280,21 @@ function wporgcd_render_ladder_view( $filters ) {
 	</div>
 	<?php else : ?>
 		<?php if ( $total_contributors === 0 ) : ?>
-	<div class="view-placeholder card">
-		<h2>No contributors match these filters</h2>
-		<p>Widen the date range or toggle &ldquo;Include inactive users&rdquo; in the filters sidebar &mdash; or <button type="button" class="modal-trigger" data-modal-target="modal-ladder-editor">customize the ladder</button> to match different requirements.</p>
-			<?php if ( $is_custom_ladder ) : ?>
-			<p class="view-placeholder-note"><span class="ladder-badge">Custom ladder &middot; #<?php echo esc_html( $ladder_fp ); ?></span> &middot; <a class="ladder-reset" href="<?php echo esc_url( $reset_url ); ?>">Reset to default</a></p>
-		<?php endif; ?>
-	</div>
+			<div class="view-placeholder card">
+				<?php
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped strings above.
+				echo $ladder_help_html;
+				?>
+				<h2>No contributors match these filters</h2>
+				<p>Widen the date range or toggle &ldquo;Include inactive users&rdquo; in the filters sidebar &mdash; or <button type="button" class="modal-trigger" data-modal-target="modal-ladder-editor">customize the ladder</button> to match different requirements.</p>
+				<?php if ( $is_custom_ladder ) : ?>
+				<p class="view-placeholder-note"><span class="ladder-badge">Custom ladder &middot; #<?php echo esc_html( $ladder_fp ); ?></span> &middot; <a class="ladder-reset" href="<?php echo esc_url( $reset_url ); ?>">Reset to default</a></p>
+				<?php endif; ?>
+				<?php
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped strings above.
+				echo $ladder_legend_html;
+				?>
+			</div>
 		<?php else : ?>
 	<section>
 		<div class="card">
@@ -275,6 +306,10 @@ function wporgcd_render_ladder_view( $filters ) {
 				<?php endif; ?>
 				<button type="button" class="modal-trigger ladder-customize-link" data-modal-target="modal-ladder-editor">Customize ladder</button>
 			</div>
+			<?php
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped strings above.
+			echo $ladder_help_html;
+			?>
 			<div class="funnel">
 				<div class="funnel-row funnel-row-total">
 					<div class="funnel-lbl-wrap">
@@ -374,6 +409,10 @@ function wporgcd_render_ladder_view( $filters ) {
 				</div>
 				<?php endforeach; ?>
 			</div>
+			<?php
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped strings above.
+			echo $ladder_legend_html;
+			?>
 		</div>
 	</section>
 
@@ -460,7 +499,7 @@ function wporgcd_render_ladder_view( $filters ) {
 			<button type="button" class="modal-close" data-modal-close aria-label="Close">&times;</button>
 		</div>
 		<div class="modal-body">
-			<p class="ladder-editor-help">Edit titles, reorder steps, and add or remove activity requirements. Apply navigates to a shareable URL that encodes your ladder definition &mdash; copy that URL to share.</p>
+			<p class="ladder-editor-help">Different Make WordPress teams have different contribution activities. Customize the ladder to match your team&rsquo;s context: edit titles, reorder steps, add or remove activity requirements, and adjust thresholds. Apply navigates to a shareable URL that encodes your ladder definition &mdash; copy that URL to share.</p>
 			<div class="ladder-editor-steps" data-role="ladder-editor-steps" aria-live="polite">
 				<p class="ladder-editor-noscript">Editing the ladder requires JavaScript. You can still share the current URL as-is.</p>
 			</div>

@@ -42,10 +42,10 @@ function wporgcd_render_admin_page() {
 			<a href="<?php echo esc_url( home_url() ); ?>" class="button button-primary" target="_blank">View Dashboard &rarr;</a>
 		</p>
 
-		<h2 style="margin-top: 40px;">Event Counts (last 3 months)</h2>
+		<h2 style="margin-top: 40px;">Activity counts (last 3 months)</h2>
 		<?php wporgcd_render_event_type_counts_section(); ?>
 
-		<h2 style="margin-top: 40px;">Recent Events (last 30 days)</h2>
+		<h2 style="margin-top: 40px;">Recent activity (last 30 days)</h2>
 		<?php wporgcd_render_recent_events_section(); ?>
 	</div>
 	<?php
@@ -80,7 +80,7 @@ function wporgcd_render_event_type_counts_section() {
 	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 	if ( empty( $rows ) ) {
-		echo '<div class="notice notice-info inline"><p>No events recorded in the last 3 months.</p></div>';
+		echo '<div class="notice notice-info inline"><p>No activity recorded in the last 3 months.</p></div>';
 		return;
 	}
 
@@ -91,12 +91,12 @@ function wporgcd_render_event_type_counts_section() {
 	}
 	?>
 	<p class="description">
-		<?php echo number_format( $grand_total ); ?> events across <?php echo number_format( count( $rows ) ); ?> event type<?php echo count( $rows ) === 1 ? '' : 's'; ?>, since <code><?php echo esc_html( substr( $cutoff, 0, 10 ) ); ?></code>.
+		<?php echo number_format( $grand_total ); ?> activities across <?php echo number_format( count( $rows ) ); ?> activity type<?php echo count( $rows ) === 1 ? '' : 's'; ?>, since <code><?php echo esc_html( substr( $cutoff, 0, 10 ) ); ?></code>.
 	</p>
 	<table class="wp-list-table widefat fixed striped">
 		<thead>
 			<tr>
-				<th style="width: 70%;">Event Type</th>
+				<th style="width: 70%;">Activity type</th>
 				<th>Count</th>
 			</tr>
 		</thead>
@@ -141,7 +141,7 @@ function wporgcd_render_recent_events_section() {
 	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 	if ( $total === 0 ) {
-		echo '<div class="notice notice-info inline"><p>No events recorded in the last 30 days.</p></div>';
+		echo '<div class="notice notice-info inline"><p>No activity recorded in the last 30 days.</p></div>';
 		return;
 	}
 
@@ -163,13 +163,13 @@ function wporgcd_render_recent_events_section() {
 	$shown       = count( $rows );
 	?>
 	<p class="description">
-		Showing the latest <?php echo number_format( $shown ); ?> of <?php echo number_format( $total ); ?> events received in the last 30 days.
+		Showing the latest <?php echo number_format( $shown ); ?> of <?php echo number_format( $total ); ?> activities received in the last 30 days.
 		Range anchored to reference date <code><?php echo esc_html( $reference_end ); ?></code>.
 	</p>
 	<table class="wp-list-table widefat fixed striped">
 		<thead>
 			<tr>
-				<th style="width: 35%;">Event Type</th>
+				<th style="width: 35%;">Activity type</th>
 				<th style="width: 25%;">Contributor ID</th>
 				<th>Date</th>
 			</tr>

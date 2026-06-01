@@ -53,7 +53,7 @@ function wporgcd_render_about_view( $filters ) {
 	<section class="about-section">
 		<div class="insights about-disclaimer">
 			<h3>About the data</h3>
-			<p>This dashboard reflects only the contribution events that have been imported into it. Coverage is <strong>not fully reliable yet</strong>: major contribution channels &mdash; including WordPress <strong>Core</strong>, <strong>Meta</strong>, <strong>GitHub</strong>, and <strong>Slack</strong> &mdash; are not comprehensively integrated.</p>
+			<p>This dashboard reflects only the contribution activity that has been imported into it. Coverage is <strong>not fully reliable yet</strong>: major contribution channels &mdash; including WordPress <strong>Core</strong>, <strong>Meta</strong>, <strong>GitHub</strong>, and <strong>Slack</strong> &mdash; are not comprehensively integrated.</p>
 			<p>Treat the totals, trends, and ladder placement across the other views as <strong>directional</strong> rather than a complete picture of anyone&rsquo;s contributions.</p>
 		</div>
 	</section>
@@ -83,14 +83,18 @@ function wporgcd_render_about_view( $filters ) {
 				<?php endforeach; ?>
 			</div>
 			<?php endif; ?>
+			<p class="about-lead">This is an <strong>example starting point</strong>, not a fixed progression everyone should follow. Make teams are expected to <strong>customize the ladder</strong> on the <a href="<?php echo esc_url( wporgcd_build_view_url( 'ladder' ) ); ?>">Ladder view</a> &mdash; rename steps, reorder them, and swap activity requirements to match how their team actually works.</p>
+			<?php if ( ! empty( $ladder_steps ) ) : ?>
+			<p class="about-lead">Don&rsquo;t treat <?php echo esc_html( implode( ', ', $ladder_steps ) ); ?> as goals in themselves.</p>
+			<?php endif; ?>
 		</div>
 	</section>
 
 	<section class="about-section">
 		<div class="card">
 			<h2>How it works</h2>
-			<p class="about-lead">Raw activity records are imported via a REST API and stored as immutable events. Every view aggregates those events live in PHP on each request &mdash; there are no precomputed tables, so newly imported events show up immediately.</p>
-			<p class="about-lead">Contributor status (active, warning, inactive) is calculated relative to the <strong>reference date</strong> &mdash; the newest event date in the data &mdash; rather than today&rsquo;s wall-clock date. This keeps status meaningful even when imports arrive with a delay.</p>
+			<p class="about-lead">Raw activity records are imported via a REST API and stored as immutable activity records. Every view aggregates them live in PHP on each request &mdash; there are no precomputed tables, so newly imported activity shows up immediately.</p>
+			<p class="about-lead">Contributor status (active, warning, inactive) is calculated relative to the <strong>reference date</strong> &mdash; the newest activity date in the data &mdash; rather than today&rsquo;s wall-clock date. This keeps status meaningful even when imports arrive with a delay.</p>
 		</div>
 	</section>
 
@@ -108,13 +112,13 @@ function wporgcd_render_about_view( $filters ) {
 	<section class="about-section">
 		<div class="card">
 			<h2>Contribution types in scope</h2>
-			<p class="about-lead">These are the event types the dashboard currently recognizes. As more contribution channels are integrated, this list will grow.</p>
+			<p class="about-lead">These are the activity types the dashboard currently recognizes. As more contribution channels are integrated, this list will grow.</p>
 			<div class="about-table-wrap">
 				<table class="about-event-table">
 					<thead>
 						<tr>
 							<th scope="col">Contribution</th>
-							<th scope="col">Event type</th>
+							<th scope="col">Activity type</th>
 						</tr>
 					</thead>
 					<tbody>

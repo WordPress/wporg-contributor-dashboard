@@ -61,13 +61,13 @@ function wporgcd_get_views() {
 				),
 				'first_event_type'    => array(
 					'type'        => 'event_type_select',
-					'label'       => 'First event type',
-					'placeholder' => 'Any first event…',
+					'label'       => 'First activity type',
+					'placeholder' => 'Any first activity…',
 				),
 				'exclude_event_types' => array(
 					'type'        => 'event_type_multiselect',
-					'label'       => 'Exclude event types',
-					'placeholder' => 'Exclude event types…',
+					'label'       => 'Exclude activity types',
+					'placeholder' => 'Exclude activity types…',
 				),
 			),
 		),
@@ -94,13 +94,13 @@ function wporgcd_get_views() {
 		// ),
 		// 'first_event_type'    => array(
 		// 'type'        => 'event_type_select',
-		// 'label'       => 'First event type',
-		// 'placeholder' => 'Any first event…',
+		// 'label'       => 'First activity type',
+		// 'placeholder' => 'Any first activity…',
 		// ),
 		// 'exclude_event_types' => array(
 		// 'type'        => 'event_type_multiselect',
-		// 'label'       => 'Exclude event types',
-		// 'placeholder' => 'Exclude event types…',
+		// 'label'       => 'Exclude activity types',
+		// 'placeholder' => 'Exclude activity types…',
 		// ),
 		// ),
 		// ),
@@ -117,13 +117,13 @@ function wporgcd_get_views() {
 				),
 				'first_event_type'    => array(
 					'type'        => 'event_type_select',
-					'label'       => 'First event type',
-					'placeholder' => 'Any first event…',
+					'label'       => 'First activity type',
+					'placeholder' => 'Any first activity…',
 				),
 				'exclude_event_types' => array(
 					'type'        => 'event_type_multiselect',
-					'label'       => 'Exclude event types',
-					'placeholder' => 'Exclude event types…',
+					'label'       => 'Exclude activity types',
+					'placeholder' => 'Exclude activity types…',
 				),
 			),
 		),
@@ -928,6 +928,8 @@ dialog.wporgcd-modal.wporgcd-modal-wide { width: min(720px, 92vw); }
 .about-section h2 { margin-bottom: 12px; }
 .about-lead { font-size: 14px; color: var(--muted); line-height: 1.6; margin: 0 0 12px; max-width: 720px; }
 .about-lead:last-child { margin-bottom: 0; }
+.about-lead a { color: var(--blue); text-decoration: none; }
+.about-lead a:hover { text-decoration: underline; }
 .about-disclaimer { margin-bottom: 0; }
 .about-disclaimer p { font-size: 14px; color: var(--muted); line-height: 1.6; margin: 0 0 10px; }
 .about-disclaimer p:last-child { margin-bottom: 0; }
@@ -948,6 +950,12 @@ dialog.wporgcd-modal.wporgcd-modal-wide { width: min(720px, 92vw); }
 .about-event-table code { font-size: 12px; color: var(--muted); }
 .about-excluded-flag { display: inline-block; margin-left: 8px; padding: 1px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; font-size: 11px; color: var(--light); white-space: nowrap; }
 .about-footnote { font-size: 12px; color: var(--light); margin: 12px 0 0; line-height: 1.5; }
+
+.ladder-card-help { font-size: 13px; color: var(--muted); line-height: 1.6; margin: 0 0 12px; max-width: 720px; }
+.ladder-card-help a { color: var(--blue); text-decoration: none; }
+.ladder-card-help a:hover { text-decoration: underline; }
+.ladder-status-legend { font-size: 12px; color: var(--muted); line-height: 1.6; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.ladder-status-legend strong { color: var(--text); }
 
 .footer { text-align: center; padding: 24px 20px 0; color: var(--light); font-size: 12px; border-top: 1px solid var(--border); margin-top: 40px; }
 .footer a { color: var(--blue); text-decoration: none; padding: 4px 0; }
@@ -1255,13 +1263,13 @@ body.is-navigating, body.is-navigating a, body.is-navigating button { cursor: pr
 			}
 
 			function buildEventTypeSelect(selectedId) {
-				var sel = el('select', { 'aria-label': 'Event type' });
+				var sel = el('select', { 'aria-label': 'Activity type' });
 				// Lead with a placeholder so unknown ids surface visibly
 				// (the resolver would silently drop them anyway, but we want
 				// the UI to make the user re-pick rather than ship a broken
 				// requirement upstream).
 				if (!selectedId || !cfg.eventTypes.hasOwnProperty(selectedId)) {
-					sel.appendChild(el('option', { value: '', text: '— Select event —' }));
+					sel.appendChild(el('option', { value: '', text: '— Select activity —' }));
 				}
 				eventTypeEntries.forEach(function (et) {
 					var opt = el('option', { value: et.id, text: et.title });

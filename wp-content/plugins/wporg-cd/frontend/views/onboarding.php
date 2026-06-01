@@ -248,7 +248,7 @@ function wporgcd_render_onboarding_view( $filters ) {
 		<?php endif; ?>
 
 		<div class="card">
-			<h3>First Contribution Event</h3>
+			<h3>First activity type</h3>
 			<?php
 			if ( ! empty( $first_event_counts ) ) :
 				$max_first = reset( $first_event_counts );
