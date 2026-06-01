@@ -1,48 +1,66 @@
 <?php
 /**
  * Event Reference Dates
- * 
+ *
  * Functions for managing reference dates used in time-based calculations.
  */
 
-if (!defined('ABSPATH')) exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 /**
  * Get the reference end date for time-based calculations.
  * This is the date of the newest event, used instead of "today".
  */
 function wporgcd_get_reference_end_date() {
-    return get_option('wporgcd_reference_end_date', current_time('Y-m-d'));
+	return get_option( 'wporgcd_reference_end_date', current_time( 'Y-m-d' ) );
 }
 
 /**
  * Get the reference start date for time-based calculations.
- * This is the date of the oldest event.
+ * Hardcoded floor configured in config.php.
  */
 function wporgcd_get_reference_start_date() {
-    return get_option('wporgcd_reference_start_date', current_time('Y-m-d'));
+	return WPORGCD_REFERENCE_START_DATE;
 }
 
 /**
- * Set the reference dates from the events table.
- * Call this at the start of profile generation.
- * Start date is set to 5 years before the end date to exclude unreliable older data.
+ * Get the latest day for which event data is treated as final.
+ *
+ * Every analytics query caps event_created_date at this date, so
+ * today's still-arriving import data never leaks into a cached
+ * result. Yesterday is assumed complete — under the plugin's
+ * "imports never backfill" contract, any (filters, cap_date) tuple
+ * therefore produces a result that's stable forever, which is what
+ * lets includes/cache.php keep entries with no expiration.
+ *
+ * Pure function of the wall clock (UTC), no DB access — cheap to
+ * call from cache-key composition.
+ *
+ * @return string Yesterday in UTC, formatted as 'Y-m-d'.
+ */
+function wporgcd_get_query_cap_date() {
+	return gmdate( 'Y-m-d', strtotime( '-1 day' ) );
+}
+
+/**
+ * Set the reference end date from the events table.
+ *
+ * Called after each successful event import (see wporgcd_bulk_insert_events())
+ * so the reference end date always reflects the newest event.
  */
 function wporgcd_set_reference_date_from_events() {
-    global $wpdb;
-    $events_table = wporgcd_get_table('events');
+	global $wpdb;
+	$events_table = wporgcd_get_table( 'events' );
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    // $events_table is safe from wporgcd_get_table()
-    $latest = $wpdb->get_var( "SELECT MAX(event_created_date) FROM $events_table" );
+	// $events_table is safe from wporgcd_get_table()
+	$latest = $wpdb->get_var( "SELECT MAX(event_created_date) FROM $events_table" );
     // phpcs:enable
 
-    if ( $latest ) {
-        $end_date = gmdate( 'Y-m-d', strtotime( $latest ) );
-        update_option( 'wporgcd_reference_end_date', $end_date );
-
-        // Start date is 5 years before the end date
-        $start_date = gmdate( 'Y-m-d', strtotime( $end_date . ' -5 years' ) );
-        update_option( 'wporgcd_reference_start_date', $start_date );
-    }
+	if ( $latest ) {
+		$end_date = gmdate( 'Y-m-d', strtotime( $latest ) );
+		update_option( 'wporgcd_reference_end_date', $end_date );
+	}
 }

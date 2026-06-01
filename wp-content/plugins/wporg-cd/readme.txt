@@ -22,21 +22,15 @@ The ladder is behavior-based and describes patterns of participation over time. 
 
 = Features =
 
-* Import contributor events from CSV files or REST API
-* Define custom event types and progression ladders
+* Import contributor events via REST API
+* Configure event types and the default progression ladder in PHP
+* In-page ladder editor with shareable URLs (no server-side state)
 * Automatic status tracking (active/warning/inactive)
-* Pre-rendered dashboard for fast page loads
-* Heartbeat-based background processing
-* Year-over-year comparisons and insights
 * Ladder funnel visualization
 
 = Architecture =
 
-The plugin uses a three-tier data model where each layer caches the computation of the previous:
-
-1. **Events** - Raw activity records (immutable after import)
-2. **Profiles** - Aggregated per-user data computed asynchronously
-3. **Dashboard** - Pre-rendered HTML cached in wp_options
+The plugin is a single-tier model: raw events are the source of truth, and every dashboard view aggregates them live in PHP on each request. Events are immutable after import, and ladder placement is recomputed on every page load — there is no precomputed profile table or background queue.
 
 = Status Thresholds =
 
@@ -50,31 +44,26 @@ Status is calculated relative to the reference date (newest event date), not "to
 
 1. Upload the plugin files to `/wp-content/plugins/wporg-cd/`
 2. Activate the plugin through the 'Plugins' screen in WordPress
-3. Navigate to Contributors > Event Types to define your event types
-4. Navigate to Contributors > Ladders to define progression ladders with requirements
-5. Use Contributors > Import to import events from CSV
-6. Navigate to Contributors > Profiles to generate contributor profiles
+3. Edit `wp-content/plugins/wporg-cd/config.php` to define event types and ladders
+4. Send events to `/wp-json/wporgcd/v1/events/import` (see REST API below)
+5. Visit the front-end dashboard or **Contributors** in wp-admin
 
 == Frequently Asked Questions ==
 
-= What CSV format is expected? =
-
-The CSV should have the following columns:
-`ID,user_id,user_registered,event_type,date_recorded`
-
-Batch size is 2,000 rows, and header row is auto-detected.
-
 = How is status calculated? =
 
-Status is calculated during profile generation relative to the reference date (the newest event date), not "today". This handles delayed imports correctly.
+Status is calculated live by each view, relative to the reference date (the newest event date), not "today". This handles delayed imports correctly.
 
-= How do I regenerate profiles? =
+= How do I change the ladders? =
 
-Navigate to Contributors > Profiles and click "Start Generation". This runs asynchronously via a heartbeat-based queue system.
+Two paths, depending on scope:
+
+* **Default ladder (everyone):** edit the array returned by `wporgcd_get_default_ladders()` in `wp-content/plugins/wporg-cd/config.php`. Changes take effect on the next page load.
+* **Per-link customization:** click **Customize ladder** on the Ladder view to edit titles, reorder steps, and add or remove activity requirements. Hitting Apply navigates to a URL whose `?ladder=` parameter encodes your structure; copy the URL to share. Invalid or oversized payloads fall back to the default silently.
 
 = Is there a REST API? =
 
-Yes. POST to `/wp-json/wporgcd/v1/events/import` with events array. Requires `manage_options` capability. Max 5,000 events per request.
+Yes. POST to `/wp-json/wporgcd/v1/events/import` with an events array. Requires `manage_options` capability. Max 5,000 events per request.
 
 = What does the Contributor Ladder represent? =
 
