@@ -38,6 +38,7 @@ require_once plugin_dir_path( __FILE__ ) . 'frontend/views/wrapped.php';
 require_once plugin_dir_path( __FILE__ ) . 'frontend/views/ladder.php';
 require_once plugin_dir_path( __FILE__ ) . 'frontend/views/onboarding.php';
 require_once plugin_dir_path( __FILE__ ) . 'frontend/views/cohorts.php';
+require_once plugin_dir_path( __FILE__ ) . 'frontend/views/about.php';
 
 // Activation
 register_activation_hook( __FILE__, 'wporgcd_activate_plugin' );

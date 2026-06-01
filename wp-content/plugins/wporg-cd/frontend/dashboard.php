@@ -127,6 +127,14 @@ function wporgcd_get_views() {
 				),
 			),
 		),
+		// Static About page — no filters, so it renders without a right
+		// sidebar (same as Wrapped). Kept last so it sits at the bottom of
+		// the nav; the registry order is the menu order.
+		'about'   => array(
+			'title'   => 'About',
+			'render'  => 'wporgcd_render_about_view',
+			'filters' => array(),
+		),
 	);
 }
 
@@ -910,6 +918,36 @@ dialog.wporgcd-modal.wporgcd-modal-wide { width: min(720px, 92vw); }
 .view-placeholder h2 { margin-bottom: 12px; }
 .view-placeholder p { color: var(--muted); max-width: 520px; margin: 0 auto 8px; font-size: 14px; }
 .view-placeholder-note { color: var(--light) !important; font-size: 13px !important; font-style: italic; }
+
+/* About view: static prose cards + the read-only event-type table. Reuses
+	the shared .card / .insights tokens; the rules below just tighten the
+	stacking gap, style the lead paragraphs, and paint the ladder-step pills
+	and event-type table (which mirrors the cohort table's font sizing). */
+.about-section { margin-bottom: 20px; }
+.about-section:last-child { margin-bottom: 0; }
+.about-section h2 { margin-bottom: 12px; }
+.about-lead { font-size: 14px; color: var(--muted); line-height: 1.6; margin: 0 0 12px; max-width: 720px; }
+.about-lead:last-child { margin-bottom: 0; }
+.about-disclaimer { margin-bottom: 0; }
+.about-disclaimer p { font-size: 14px; color: var(--muted); line-height: 1.6; margin: 0 0 10px; }
+.about-disclaimer p:last-child { margin-bottom: 0; }
+.about-disclaimer p strong { color: var(--text); }
+.about-ladder-steps { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.about-ladder-step { display: inline-flex; align-items: center; padding: 6px 14px; background: #eef1fd; border: 1px solid #c5cff5; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--blue); }
+.about-ladder-arrow { color: var(--light); font-size: 13px; }
+.about-view-list, .about-link-list { margin: 4px 0 0; padding-left: 20px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+.about-view-list li, .about-link-list li { padding: 2px 0; }
+.about-view-list strong { color: var(--text); }
+.about-link-list a { color: var(--blue); text-decoration: none; }
+.about-link-list a:hover { text-decoration: underline; }
+.about-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; margin-top: 12px; }
+.about-event-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; }
+.about-event-table th, .about-event-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); text-align: left; }
+.about-event-table tbody tr:last-child td { border-bottom: none; }
+.about-event-table thead th { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg); }
+.about-event-table code { font-size: 12px; color: var(--muted); }
+.about-excluded-flag { display: inline-block; margin-left: 8px; padding: 1px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; font-size: 11px; color: var(--light); white-space: nowrap; }
+.about-footnote { font-size: 12px; color: var(--light); margin: 12px 0 0; line-height: 1.5; }
 
 .footer { text-align: center; padding: 24px 20px 0; color: var(--light); font-size: 12px; border-top: 1px solid var(--border); margin-top: 40px; }
 .footer a { color: var(--blue); text-decoration: none; padding: 4px 0; }
