@@ -657,6 +657,7 @@ function wporgcd_render_layout( $active_view, $filters, $inner_html ) {
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title><?php echo esc_html( $view_title ); ?> &ndash; WordPress Contributor Dashboard</title>
+		<link rel="icon" href="<?php echo esc_url( plugins_url( 'favicon.png', __FILE__ ) ); ?>" type="image/png">
 		<?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- standalone HTML document; no wp_head() to enqueue into. ?>
 		<link rel="stylesheet" href="<?php echo esc_url( plugins_url( 'assets/tom-select/tom-select.css', __FILE__ ) ); ?>">
 		<style>
