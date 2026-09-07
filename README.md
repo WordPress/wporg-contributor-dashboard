@@ -16,30 +16,31 @@ Uses existing WordPress.org accounts and activity data, does not display persona
 
 ## Architecture
 
-The plugin uses a single-tier data model: raw events are the source of truth, and every view aggregates them live in PHP on each request. No HTML caching, no precomputed tables.
+The plugin uses a single-tier data model: raw events are the source of truth. Each view aggregates them live in PHP on each request. There are no precomputed profile tables. Inner view HTML is memoized in `wp_options` via [`includes/cache.php`](wp-content/plugins/wporg-cd/includes/cache.php); the layout (nav, filters, footer) is always live. Bump `WPORGCD_CACHE_VERSION` to invalidate cached view markup.
 
 ```
 Events (raw data, immutable)
     ↓ live aggregation per request
-Dashboard views (routed by ?view)
+    ↓ per-view HTML cache (inner markup only)
+Dashboard views (routed by ?view; layout always live)
 ```
 
 ### Events
 
 Raw activity records stored in `wp_wporgcd_events`. Each event has:
 
-- `event_id` — Unique identifier (for deduplication)
-- `contributor_id` — Username
+- `event_id` — Numeric unique identifier (for deduplication)
+- `contributor_id` — Numeric WordPress.org user ID
 - `event_type` — Activity type
 - `event_created_date` — When it occurred
 - `contributor_created_date` — Optional registration date
 - `event_data` — Optional JSON metadata
 
-Events are immutable once imported.
+Events are immutable once imported. The REST import endpoint rejects non-numeric `event_id` and `contributor_id` values.
 
 ### Dashboard
 
-The frontend dashboard is composed of multiple **views** (Wrapped, Ladder, Onboarding, Cohorts, …) selected via the `?view=` query param. Each view renders its own section of the page live on every request, aggregating the `events` table per contributor in PHP on every load — so newly imported events show up immediately and ladder edits in [config.php](wp-content/plugins/wporg-cd/config.php) take effect without any rebuild step. A shared layout provides the sidebar navigation, page header, filter bar, and footer.
+The frontend dashboard is composed of multiple **views** (Wrapped, Ladder, Cohorts, About) selected via the `?view=` query param. Each view aggregates the `events` table per contributor — so newly imported events show up immediately and ladder edits in [config.php](wp-content/plugins/wporg-cd/config.php) take effect without any rebuild step. Inner view HTML is cached; a shared layout always renders live around it (sidebar navigation, page header, filter bar, and footer).
 
 ## Status Thresholds
 
@@ -47,20 +48,20 @@ The frontend dashboard is composed of multiple **views** (Wrapped, Ladder, Onboa
 - **Warning** — Last activity 30-90 days ago
 - **Inactive** — No activity for 90+ days
 
-Status is calculated live by each view, relative to the **reference date** (the newest event date), not "today". This handles delayed imports correctly in case we take more time to import new events.
+Status is calculated live by each view, relative to the **reference date** (the newest event date), not wall-clock "today". Analytics queries (and cache keys) also cap `event_created_date` at yesterday UTC via `wporgcd_get_query_cap_date()`, so today's still-arriving imports never enter a cached result.
 
 ## Reference Date
 
 All time-based calculations use `wporgcd_reference_end_date` (stored in wp_options) instead of the current date. It's refreshed from `MAX(event_created_date)` after each successful event import (see [`includes/events/import.php`](wp-content/plugins/wporg-cd/includes/events/import.php)).
 
-This ensures that if you import December events in January, the status calculations use December as "now", not January.
+This ensures that if you import December events in January, the status calculations use December as "now", not January. Every events-table query also caps at yesterday UTC (`wporgcd_get_query_cap_date()`), which keeps each (filters, cap-date) cache key stable.
 
 ## Dashboard Features
 
 - **Wrapped** (event-date scoped): a story-style recap of the chosen period — total contributions, contributors, contributions/day, contributions/contributor, monthly contribution and contributor trends, 10+ contributor share, and top event types.
-- **Onboarding** (registration-date scoped): contributors, one-time contributor share with drop-off risk, average days from registration to first contribution, active/at-risk counts, and the breakdown of which event types onboard contributors.
 - **Ladder** funnel with active/warning counts per step.
 - **Cohorts** (registration-date scoped): a heatmap of average cumulative contributions per contributor across registration-month cohorts, with a population-weighted average row.
+- **About**: static project, data-coverage, and contribution-type notes. No sidebar filters.
 
 ### Views
 
@@ -70,8 +71,10 @@ Views are selected via the `?view=` query param and registered in `wporgcd_get_v
 |------|-----|-------------|-------------|
 | Wrapped | `?view=wrapped` (default) | WordPress.org Wrapped-style story for a chosen period (last 12 months by default, or any fully completed calendar year). Filters by `event_created_date`. No sidebar filter — period selector is in-page via `?period=`. | `events` |
 | Ladder | `?view=ladder` | Contributor progression funnel, live-computed per request. | `events` |
-| Onboarding | `?view=onboarding` | Registration-cohort metrics: avg days to first contribution, active/at-risk, one-time contributors, first contribution event types. | `events` |
 | Cohorts | `?view=cohorts` | Heatmap of average cumulative contributions per contributor across registration-month cohorts, with a weighted-average row. Filters by `contributor_created_date`. | `events` |
+| About | `?view=about` | Static project and data-coverage notes, plus the live contribution-type catalog. No filters. | `config.php` |
+
+Onboarding is implemented in [`frontend/views/onboarding.php`](wp-content/plugins/wporg-cd/frontend/views/onboarding.php) but commented out of `wporgcd_get_views()`, so it is hidden from the nav and `?view=onboarding` falls back to Wrapped.
 
 Add a new view by creating a file under `frontend/views/`, defining a `wporgcd_render_<id>_view($filters)` function, requiring it from the plugin bootstrap, and adding an entry to `wporgcd_get_views()` with an optional `filters` schema.
 
@@ -96,7 +99,7 @@ Filters are declared per view in the view registry and rendered in a right-hand 
 - Both default to "no filter" — empty value, no contributors filtered out. Unknown or globally-excluded slugs (`wporgcd_get_excluded_event_types()`) silently resolve to the empty default rather than erroring.
 - Multi-select values are sorted in the resolver so `[a,b]` and `[b,a]` produce the same cache key downstream.
 
-`wporgcd_resolve_filters($view_key)` reads `$_GET`, validates, falls back to defaults, applies `max_days` clamping, and returns a typed array that's passed into the view's render function. Each view applies the filter values directly to its own `events`-table query — there is no shared SQL filter layer. The shared helpers in [`config.php`](wp-content/plugins/wporg-cd/config.php) handle two cross-view cases: `wporgcd_get_event_type_filter_sql($extra_excluded)` stacks the `exclude_event_types` filter on the global noise list, and `wporgcd_get_first_event_type_filter_sql()` emits the `contributor_id IN (…)` predicate used by Cohorts to apply the `first_event_type` filter at SQL level (Ladder/Onboarding apply that filter in PHP after the per-contributor rollup).
+`wporgcd_resolve_filters($view_key)` reads `$_GET`, validates, falls back to defaults, applies `max_days` clamping, and returns a typed array that's passed into the view's render function. Each view applies the filter values directly to its own `events`-table query — there is no shared SQL filter layer. The shared helpers in [`config.php`](wp-content/plugins/wporg-cd/config.php) handle two cross-view cases: `wporgcd_get_event_type_filter_sql($extra_excluded)` stacks the `exclude_event_types` filter on the global noise list, and `wporgcd_get_first_event_type_filter_sql()` emits the `contributor_id IN (…)` predicate used by Cohorts to apply the `first_event_type` filter at SQL level (Ladder applies that filter in PHP after the per-contributor rollup).
 
 Switching reports via the sidebar nav opens each view with its **default** filters — `$_GET` is intentionally not carried across menu clicks, so each report has its own independent filter state. To share a specific filter combination, copy the URL.
 
@@ -104,18 +107,18 @@ Current filters per view:
 
 - **Wrapped** — no sidebar filter. Period is selected in-page via `?period=` (`last12` default, or a fully completed calendar year like `2024`). Resolution lives in [`wporgcd_resolve_wrapped_period()`](wp-content/plugins/wporg-cd/frontend/views/wrapped.php) and only accepts year values whose Jan 1–Dec 31 fits inside `[reference_start, reference_end]`; anything else falls back to `last12`.
 - **Ladder** — `registered_date` (`date_range` on `events.contributor_created_date`, default last 180 days starting one year ago, max 180), `contribution_date` (`date_range` on `events.event_created_date`, default last 730 days, max 730), `include_inactive`, `first_event_type`, `exclude_event_types`. The filter sidebar preserves an active `?ladder=` blob across Apply / Reset, so a custom ladder doesn't silently revert when filters change.
-- **Onboarding** — `registered_date` (same shape as Ladder's), `include_inactive` (`checkbox`, default off — applied in PHP after aggregating events per contributor), `first_event_type`, `exclude_event_types`.
 - **Cohorts** — `registered_date` (`date_range` on `events.contributor_created_date`, default last 365 days, max 730), `first_event_type`, `exclude_event_types`. Defines which registration months become rows in the cohort heatmap.
+- **About** — none.
 
 ### Query Params
 
 - `?view=<id>` — Select a view (default `wrapped`)
 - `?period=last12|YYYY` — Wrapped period (default `last12`; `YYYY` only accepted for fully completed calendar years inside the available data range)
-- `?registered_date_start=YYYY-MM-DD&registered_date_end=YYYY-MM-DD` — User-registered-date filter (Onboarding/Ladder: max range 180 days; Cohorts: max range 730 days)
+- `?registered_date_start=YYYY-MM-DD&registered_date_end=YYYY-MM-DD` — User-registered-date filter (Ladder: max range 180 days; Cohorts: max range 730 days)
 - `?contribution_date_start=YYYY-MM-DD&contribution_date_end=YYYY-MM-DD` — Contribution-date filter (Ladder; max range: 730 days)
-- `?include_inactive=1` — Include inactive contributors (Onboarding, Ladder)
-- `?first_event_type=<slug>` — Limit to contributors whose first matching event was `<slug>` (Onboarding, Ladder, Cohorts; empty = off)
-- `?exclude_event_types[]=<slug>` — Exclude one or more event types from the analysis on top of the global noise list (Onboarding, Ladder, Cohorts; repeat the param for each slug; empty = off)
+- `?include_inactive=1` — Include inactive contributors (Ladder)
+- `?first_event_type=<slug>` — Limit to contributors whose first matching event was `<slug>` (Ladder, Cohorts; empty = off)
+- `?exclude_event_types[]=<slug>` — Exclude one or more event types from the analysis on top of the global noise list (Ladder, Cohorts; repeat the param for each slug; empty = off)
 - `?ladder=<base64url-json>` — Custom ladder definition for the Ladder view (overrides the default from `wporgcd_get_default_ladders()`). Encoded payload is decoded + validated by [`wporgcd_get_ladders()`](wp-content/plugins/wporg-cd/includes/ladders.php); invalid values silently fall back to the default. Limits: ≤ 20 steps, ≤ 50 requirements per step, ≤ 32 KB raw payload.
 
 ## Configuration
@@ -156,8 +159,8 @@ Requires `manage_options` capability. Max 5,000 events per request.
 {
   "events": [
     {
-      "event_id": "unique-id",
-      "contributor_id": "username",
+      "event_id": 12345,
+      "contributor_id": 123,
       "contributor_created_date": "2024-01-15",
       "event_type": "support_reply",
       "event_created_date": "2024-06-20"

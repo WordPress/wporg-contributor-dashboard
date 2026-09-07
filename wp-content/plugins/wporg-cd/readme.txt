@@ -1,7 +1,7 @@
 === WordPress Contributor Dashboard ===
 Contributors: wordpressdotorg
 Tags: contributors, dashboard, analytics, community
-Requires at least: 6.0
+Requires at least: 6.5
 Tested up to: 6.9
 Stable tag: 1.0.0
 Requires PHP: 7.4
@@ -30,7 +30,7 @@ The ladder is behavior-based and describes patterns of participation over time. 
 
 = Architecture =
 
-The plugin is a single-tier model: raw events are the source of truth, and every dashboard view aggregates them live in PHP on each request. Events are immutable after import, and ladder placement is recomputed on every page load — there is no precomputed profile table or background queue.
+The plugin is a single-tier model: raw events are the source of truth, and every dashboard view aggregates them live in PHP on each request. Inner view HTML is cached in wp_options; the layout is always live. Events are immutable after import, and ladder placement is recomputed on every page load — there is no precomputed profile table or background queue.
 
 = Status Thresholds =
 
@@ -38,7 +38,7 @@ The plugin is a single-tier model: raw events are the source of truth, and every
 * **Warning** — Last activity 30-90 days ago
 * **Inactive** — No activity for 90+ days
 
-Status is calculated relative to the reference date (newest event date), not "today", which handles delayed imports correctly.
+Status is calculated relative to the reference date (newest event date), not wall-clock "today". Analytics queries also cap activity at yesterday UTC so today's still-arriving imports never enter a cached result.
 
 == Installation ==
 
@@ -52,7 +52,7 @@ Status is calculated relative to the reference date (newest event date), not "to
 
 = How is status calculated? =
 
-Status is calculated live by each view, relative to the reference date (the newest event date), not "today". This handles delayed imports correctly.
+Status is calculated live by each view, relative to the reference date (the newest event date), not wall-clock "today". Analytics queries also cap activity at yesterday UTC so today's still-arriving imports never enter a cached result.
 
 = How do I change the ladders? =
 
@@ -67,7 +67,7 @@ Yes. POST to `/wp-json/wporgcd/v1/events/import` with an events array. Requires 
 
 = What does the Contributor Ladder represent? =
 
-The ladder (Connect → Contribute → Engage → Perform → Lead) is behavior-based and describes patterns of participation over time. It does not rank contributors or imply that some contributions matter more than others.
+The ladder (Connect → Contribute → Engage → Perform) is behavior-based and describes patterns of participation over time. It does not rank contributors or imply that some contributions matter more than others.
 
 == Changelog ==
 
